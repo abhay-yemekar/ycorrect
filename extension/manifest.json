@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "yCorrect — Writing assistant",
+  "version": "0.1.0",
+  "description": "Improve selected text with your local yCorrect assistant.",
+  "permissions": ["contextMenus", "notifications"],
+  "host_permissions": ["http://localhost:3000/*"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_title": "yCorrect"}
+}

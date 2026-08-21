@@ -1,0 +1,10 @@
+{
+  "name": "ycorrect",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A personal Grammarly-style writing assistant with grammar checking and AI rewriting.",
+  "type": "module",
+  "scripts": {    "start": "node server/app.js",
+    "dev": "node server/app.js" },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>yCorrect — Write with confidence</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="fileBanner">⚠ You opened this file directly from disk. Run <code>npm start</code> in the project folder, then open <a href="http://localhost:3000">http://localhost:3000</a> so grammar and AI tools can work.</div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">y</span><span>yCorrect</span><span class="free-tag">FREE FOREVER</span></div>
+  <div class="doc-title"><h1 id="title">Untitled document</h1><span id="saveState">Saved locally</span><button id="rename" class="rename" title="Rename document">✎</button></div>
+  <div class="top-actions">
+    <button id="toneBadge" class="badge" title="Detected tone · click to refresh">Tone —</button>
+    <span id="fkScore" class="badge" title="Flesch reading ease score (higher is easier to read)">FK —</span>
+    <button class="check-btn" id="check">✓ Check writing</button>
+    <button class="icon-btn" id="newDoc2" title="New document">＋</button>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode (Ctrl+Shift+D)">🌙</button>
+  </div>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <button class="new-doc" id="newDoc">＋ New document</button>
+    <div class="side-label">Documents</div>
+    <div id="docList" class="doc-list"></div>
+    <div class="side-bottom"><div class="status"><i></i> Grammar + AI · Free forever</div></div>
+  </aside>
+
+  <section class="workspace">
+    <div class="editor-card">
+      <div class="editor-scroll">
+        <textarea id="editor" spellcheck="false" placeholder="Start writing here…&#10;&#10;yCorrect checks grammar as you type, shows underlines in the text, and offers AI rewriting, paraphrasing and summaries in the right panel."></textarea>
+        <div id="overlay"></div>
+      </div>
+      <div class="editor-footer">
+        <span id="wordCount">0 words</span><span id="charCount">0 chars</span><span id="readTime">0 min read</span><span class="footer-right">English (US) · Ctrl+Enter to check</span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="panel-tabs">
+      <button class="tab active" data-tab="issues">Issues <em id="issueCount">0</em></button>
+      <button class="tab" data-tab="paraphrase">Paraphrase</button>
+      <button class="tab" data-tab="summarize">Summarize</button>
+      <button class="tab" data-tab="goals">Goals</button>
+    </div>
+    <div id="panel" class="panel-body">
+      <div id="tabIssues" class="tabpane active">
+        <div class="empty"><div class="empty-icon">✦</div><h3>Your writing assistant</h3><p>Issues appear here and as underlines in your text.<br>Red = correctness · blue = clarity · yellow = style</p></div>
+      </div>
+      <div id="tabParaphrase" class="tabpane">
+        <p class="hint">Paraphrases the selected text, or the whole document when nothing is selected.</p>
+        <label for="paraMode">Mode</label>
+        <select id="paraMode">
+          <option value="Standard">Standard</option>
+          <option value="Fluency">Fluency</option>
+          <option value="Formal">Formal</option>
+          <option value="Academic">Academic</option>
+          <option value="Simple">Simple</option>
+          <option value="Creative">Creative</option>
+          <option value="Expand">Expand</option>
+          <option value="Shorten">Shorten</option>
+        </select>
+        <label for="paraStrength">Strength <span id="strengthVal" class="label-val">50%</span></label>
+        <input type="range" id="paraStrength" min="0" max="100" value="50">
+        <button class="btn primary" id="paraphraseBtn">Paraphrase</button>
+        <div id="paraphraseOut"></div>
+      </div>
+      <div id="tabSummarize" class="tabpane">
+        <p class="hint">Summarizes the selected text, or the whole document when nothing is selected.</p>
+        <label for="sumStyle">Style</label>
+        <select id="sumStyle">
+          <option value="sentences">Key sentences</option>
+          <option value="bullets">Bullet points</option>
+          <option value="paragraph">Paragraph</option>
+        </select>
+        <label for="sumLength">Length</label>
+        <select id="sumLength">
+          <option value="short">Short</option>
+          <option value="medium" selected>Medium</option>
+          <option value="long">Long</option>
+        </select>
+        <button class="btn primary" id="summarizeBtn">Summarize</button>
+        <div id="summarizeOut"></div>
+      </div>
+      <div id="tabGoals" class="tabpane">
+        <p class="hint">These goals guide every AI rewrite, paraphrase and summary.</p>
+        <label for="goalAud">Audience</label>
+        <select id="goalAud"><option value="General">General</option><option value="Knowledgeable">Knowledgeable</option><option value="Expert">Expert</option></select>
+        <label for="goalForm">Formality</label>
+        <select id="goalForm"><option value="Neutral">Neutral</option><option value="Formal">Formal</option><option value="Casual">Casual</option></select>
+        <label for="goalGenre">Genre</label>
+        <select id="goalGenre"><option value="General">General</option><option value="Business">Business</option><option value="Academic">Academic</option><option value="Creative">Creative</option><option value="Email">Email</option></select>
+
+        <label style="margin-top: 24px;">Export Document</label>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button class="btn ghost small" data-export="txt">📄 .txt</button>
+          <button class="btn ghost small" data-export="md">📝 .md</button>
+          <button class="btn ghost small" data-export="html">🌐 .html</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="popover" class="popover"></div>
+<div class="toast" id="toast"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
