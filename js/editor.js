@@ -1,6 +1,11 @@
 /**
  * Editor module — manages the textarea, transparent overlay for underlines,
- * and scroll synchronization.
+ * scroll synchronization, and the single mutation path for programmatic
+ * text changes.
+ *
+ * Invariant: the ONLY way to change editor text from code is setText() /
+ * replaceAt() / setDocumentText(). Assigning editor.value directly fires no
+ * input event, which used to leave the overlay, stats, and save state stale.
  */
 
 import { $, esc } from './utils.js';
@@ -32,23 +37,6 @@ export function initEditor() {
     overlay.scrollTop = editor.scrollTop;
   });
 
-  overlay.addEventListener('click', (e) => {
-    const span = e.target.closest('.u');
-    if (!span) return;
-    const idx = +span.dataset.i;
-    const issue = currentIssues[idx];
-    if (!issue) return;
-
-    editor.focus();
-    editor.setSelectionRange(issue.offset, issue.offset + issue.length);
-
-    // Dispatch a custom event for the grammar module to handle
-    const rect = span.getBoundingClientRect();
-    editor.dispatchEvent(new CustomEvent('issueClick', {
-      detail: { issue, index: idx, rect },
-    }));
-  });
-
   return editor;
 }
 
@@ -56,11 +44,116 @@ export function getEditor() {
   return editor;
 }
 
+export function getOverlay() {
+  return overlay;
+}
+
+// ─── Offset arithmetic ────────────────────────────────────────────
+
+/**
+ * Shift stored issue offsets to match a text change.
+ *
+ * Issues entirely before the edit keep their offset, issues entirely after
+ * it shift by the length delta, and issues intersecting the edited region
+ * are dropped (their range no longer refers to the same characters).
+ *
+ * Pure — unit-tested in Node.
+ *
+ * @param {object[]} issues
+ * @param {string} prevText
+ * @param {string} nextText
+ * @returns {object[]} shifted issues
+ */
+export function shiftIssues(issues, prevText, nextText) {
+  const minLen = Math.min(prevText.length, nextText.length);
+
+  // Common prefix
+  let start = 0;
+  while (start < minLen && prevText[start] === nextText[start]) start++;
+
+  // Common suffix
+  let endPrev = prevText.length;
+  let endNext = nextText.length;
+  while (endPrev > start && endNext > start && prevText[endPrev - 1] === nextText[endNext - 1]) {
+    endPrev--;
+    endNext--;
+  }
+
+  const delta = (endNext - start) - (endPrev - start);
+
+  const shifted = [];
+  for (const issue of issues) {
+    const end = issue.offset + issue.length;
+    if (end <= start) {
+      shifted.push(issue); // entirely before the edit
+    } else if (issue.offset >= endPrev) {
+      shifted.push({ ...issue, offset: issue.offset + delta }); // entirely after
+    }
+    // else: intersects the edited region — drop
+  }
+  return shifted;
+}
+
+// ─── Mutation paths ───────────────────────────────────────────────
+
+/**
+ * The single mutation path for programmatic edits to the current document.
+ * Shifts stored issues, re-renders the overlay, and dispatches a real
+ * 'input' event so the normal pipeline (stats, save, check, tone) runs —
+ * exactly as if the user had typed the change.
+ *
+ * @param {string} next
+ * @param {number|null} [caret] — collapsed caret position after the edit
+ */
+export function setText(next, caret = null) {
+  const prev = editor.value;
+  if (prev === next) {
+    if (caret !== null) editor.setSelectionRange(caret, caret);
+    return;
+  }
+
+  editor.value = next;
+  if (caret !== null) editor.setSelectionRange(caret, caret);
+
+  currentIssues = shiftIssues(currentIssues, prev, next);
+  renderOverlay();
+
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/**
+ * Replace a range of text (used by grammar fixes).
+ * The caret lands at the end of the inserted replacement.
+ */
+export function replaceAt(offset, length, replacement) {
+  const text = editor.value;
+  setText(
+    text.slice(0, offset) + replacement + text.slice(offset + length),
+    offset + replacement.length
+  );
+}
+
+/**
+ * Load a different document into the editor: clears stale issues and
+ * re-renders, but does NOT fire the input pipeline — nothing was edited,
+ * so the document must not be re-saved or re-checked by the caller's
+ * debouncers. Callers run their own updateStats()/runCheck().
+ */
+export function setDocumentText(text) {
+  editor.value = text;
+  currentIssues = [];
+  renderOverlay();
+}
+
 // ─── Overlay rendering ────────────────────────────────────────────
 
 export function setIssues(issues) {
   currentIssues = issues;
   renderOverlay();
+}
+
+export function getIssues() {
+  return currentIssues;
 }
 
 /**
@@ -121,14 +214,4 @@ export function renderOverlayHtml(plain, issues) {
 export function renderOverlay() {
   overlay.innerHTML = renderOverlayHtml(editor.value, currentIssues);
   overlay.scrollTop = editor.scrollTop;
-}
-
-// ─── Replace text at offset ───────────────────────────────────────
-
-export function replaceAt(offset, length, replacement) {
-  const text = editor.value;
-  const before = text.slice(0, offset);
-  const after = text.slice(offset + length);
-  editor.value = before + replacement + after;
-  editor.setSelectionRange(offset, offset + replacement.length);
 }
