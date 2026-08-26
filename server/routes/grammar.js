@@ -9,6 +9,26 @@ import { checkGrammar } from '../services/languagetool.js';
 import { checkLocal } from '../services/localRules.js';
 import { validateTextSize, sanitizeText } from '../middleware/validate.js';
 
+/**
+ * Merge local and remote matches: dedupe by offset+length+message, then
+ * sort in reading order (by offset, longer match first at equal offsets)
+ * so the issues panel lists problems the way the user wrote them.
+ * @param {object[]} localMatches
+ * @param {object[]} remoteMatches
+ * @returns {object[]}
+ */
+export function mergeMatches(localMatches, remoteMatches) {
+  const seen = new Set();
+  return [...localMatches, ...remoteMatches]
+    .filter(m => {
+      const key = `${m.offset}:${m.length}:${m.message}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.offset - b.offset || b.length - a.length);
+}
+
 export default async function grammarRoute(req, res, body) {
   const text = sanitizeText(body.text || '');
 
@@ -28,14 +48,6 @@ export default async function grammarRoute(req, res, body) {
     }),
   ]);
 
-  // Merge and deduplicate
-  const seen = new Set();
-  const combined = [...localMatches, ...remoteMatches].filter(m => {
-    const key = `${m.offset}:${m.length}:${m.message}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-
-  return { matches: combined };
+  // Merge, dedupe, and order for the issues panel
+  return { matches: mergeMatches(localMatches, remoteMatches) };
 }
