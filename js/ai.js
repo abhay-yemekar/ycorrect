@@ -10,17 +10,9 @@ import { getEditor, setText } from './editor.js';
 import { pushUndoState } from './shortcuts.js';
 
 // ─── Paraphrase modes ─────────────────────────────────────────────
-
-const PARA_MODES = {
-  Standard: 'Paraphrase this text naturally, keeping the same meaning and length.',
-  Fluency: 'Rewrite this text for fluent, natural English; fix awkward phrasing while preserving meaning.',
-  Formal: 'Rewrite this text in formal, professional English.',
-  Academic: 'Rewrite this text in academic style with precise vocabulary and a formal structure.',
-  Simple: 'Rewrite this text in plain, simple English that anyone can understand.',
-  Creative: 'Rewrite this text in a creative, vivid, engaging style.',
-  Expand: 'Expand this text with more detail and depth while keeping the same meaning.',
-  Shorten: 'Shorten this text, keeping only the essential meaning in fewer words.',
-};
+// The mode KEY is sent to the server; prompt text and temperature bands
+// live server-side (server/services/modes.js) so requests cannot inject
+// instructions, and Creative/Expand reliably get their hotter band.
 
 // ─── Writing goals ────────────────────────────────────────────────
 
@@ -38,11 +30,11 @@ function saveGoals(goals) {
 
 // ─── Core AI call ─────────────────────────────────────────────────
 
-async function aiCall(text, mode, temperature, goals) {
+async function aiCall(text, mode, strength, variant, goals) {
   const res = await fetch('/api/ai', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, mode, temperature, goals }),
+    body: JSON.stringify({ text, mode, strength, variant, goals }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'AI request failed');
@@ -73,11 +65,7 @@ async function handleParaphrase() {
   if (!text.trim()) return notify('Write or paste some text first.');
 
   const modeName = $('#paraMode').value;
-  const mode = PARA_MODES[modeName];
   const strength = +$('#paraStrength').value / 100;
-  const temperature = (mode.includes('Creative') || mode.includes('Expand'))
-    ? 0.5 + strength * 0.45
-    : 0.15 + strength * 0.5;
 
   const output = $('#paraphraseOut');
   output.innerHTML = '<div class="ai-loading">Generating two variants…</div>';
@@ -85,8 +73,8 @@ async function handleParaphrase() {
   try {
     const goals = loadGoals();
     const [a, b] = await Promise.all([
-      aiCall(text, mode, temperature, goals),
-      aiCall(text, mode, Math.min(1, temperature + 0.15), goals),
+      aiCall(text, modeName, strength, 1, goals),
+      aiCall(text, modeName, strength, 2, goals),
     ]);
     output.innerHTML = variantHtml(a) + variantHtml(b);
   } catch (err) {
