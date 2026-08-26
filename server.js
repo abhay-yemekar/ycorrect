@@ -1,7 +1,10 @@
 /**
  * Backwards-compatible entry point.
- * 
- * The server has been refactored into server/app.js with modular
- * routes, middleware, and services. This file redirects to the new entry.
+ *
+ * The server lives in server/app.js with modular routes, middleware, and
+ * services. This file starts it for anyone still running `node server.js`.
+ * Prefer `npm start`.
  */
-import './server/app.js';
+import { startServer } from './server/app.js';
+
+startServer();
