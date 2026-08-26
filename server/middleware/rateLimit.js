@@ -14,6 +14,24 @@ const MAX_REQUESTS = Number(process.env.YCORRECT_RATE_LIMIT || 120);
 const CLEANUP_INTERVAL = 300_000; // prune every 5 min
 
 /**
+ * Identity of a request for limiting purposes.
+ *
+ * x-forwarded-for is trusted ONLY when TRUST_PROXY is set — it is
+ * client-controlled and must never be the limiter key by default
+ * (defect 15). Behind a proxy without the flag, all traffic shares one
+ * bucket; set TRUST_PROXY=1 when deploying behind a trusted reverse proxy.
+ */
+function keyFor(req) {
+  if (/^(1|true|yes)$/i.test(process.env.TRUST_PROXY || '')) {
+    const xff = req.headers['x-forwarded-for'];
+    if (typeof xff === 'string' && xff.trim()) {
+      return xff.split(',')[0].trim();
+    }
+  }
+  return req.socket?.remoteAddress || 'unknown';
+}
+
+/**
  * Returns a middleware function.
  * @param {object} opts
  * @param {number} [opts.max]  — max requests per window (default: env or 120)
@@ -38,7 +56,7 @@ export function createRateLimiter(opts = {}) {
   if (typeof cleanup.unref === 'function') cleanup.unref();
 
   return function rateLimit(req, res) {
-    const ip = req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    const ip = keyFor(req);
     const now = Date.now();
     let entry = hits.get(ip);
 

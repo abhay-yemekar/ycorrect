@@ -65,10 +65,34 @@ describe('createRateLimiter', () => {
     assert.equal(b(fakeReq('10.0.0.4'), fakeRes()), false, 'b must not share state with a');
   });
 
-  test('falls back to x-forwarded-for when no socket address exists', () => {
+  test('x-forwarded-for is ignored unless TRUST_PROXY is set (defect 15)', () => {
     const limiter = createRateLimiter({ max: 1, windowMs: 60_000 });
-    const req = { socket: {}, headers: { 'x-forwarded-for': '10.9.8.7, 10.0.0.1' } };
-    assert.equal(limiter(req, fakeRes()), false);
-    assert.equal(limiter(req, fakeRes()), true);
+    const proxied = { socket: { remoteAddress: '10.0.0.9' }, headers: { 'x-forwarded-for': '1.2.3.4' } };
+
+    assert.equal(limiter(proxied, fakeRes()), false);
+    // Keyed by the socket address — the client-supplied header must not
+    // rotate the bucket:
+    assert.equal(limiter(proxied, fakeRes()), true);
+    assert.equal(
+      limiter({ socket: { remoteAddress: '10.0.0.10' }, headers: { 'x-forwarded-for': '1.2.3.4' } }, fakeRes()),
+      false
+    );
+  });
+
+  test('TRUST_PROXY=1 keys on the x-forwarded-for client IP', () => {
+    process.env.TRUST_PROXY = '1';
+    try {
+      const limiter = createRateLimiter({ max: 1, windowMs: 60_000 });
+      const req = { socket: { remoteAddress: '10.0.0.9' }, headers: { 'x-forwarded-for': '1.2.3.4' } };
+      assert.equal(limiter(req, fakeRes()), false);
+      assert.equal(limiter(req, fakeRes()), true);
+      // Different client behind the same proxy → own bucket:
+      assert.equal(
+        limiter({ socket: { remoteAddress: '10.0.0.9' }, headers: { 'x-forwarded-for': '5.6.7.8' } }, fakeRes()),
+        false
+      );
+    } finally {
+      delete process.env.TRUST_PROXY;
+    }
   });
 });
