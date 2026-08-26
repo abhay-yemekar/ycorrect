@@ -6,6 +6,44 @@ this file alone: what was done, what was decided, what is next.
 
 ---
 
+## Session 2026-08-26 — E1: flagship in-page extension assistant ✅
+
+**Goal:** turn the extension from context-menu-only into a Grammarly/QuillBot-style
+in-page writing assistant: floating badge, grammar underlines, click-to-fix cards,
+selection-based AI rewrite, and per-site toggles.
+
+**Done:**
+
+- **Humanize mode** added to the server-side paraphrase vocabulary
+  (`server/services/modes.js`) with its own temperature band [0.3, 0.8];
+  mode count 8 → 9; test updated.
+- **Content script** (`extension/content.js`, ~350 lines): detects text fields
+  (textarea, input, contenteditable), shows a floating green badge on focus,
+  renders grammar underlines via a mirrored overlay (textarea) or DOM overlay
+  (contenteditable), opens inline fix cards with Replace/Ignore/Humanize,
+  shows a Rewrite chip on text selection with mode chips (Humanize, Fluency,
+  Formal, Shorten, Expand).
+- **Background worker** rewritten with message handlers: `checkGrammar`
+  proxies to `/api/grammar`, `rewrite` proxies to `/api/ai`, `openApp`
+  opens the web app. Context-menu path preserved.
+- **Toolbar popup** (`extension/popup.html + popup.js`): per-site enable/disable
+  toggle, grammar on/off toggle, server health status with version display,
+  link to open the web app.
+- **Manifest v0.3.0**: content_scripts injected on all HTTP/HTTPS pages,
+  action popup wired, `host_permissions` for localhost.
+- **ESLint config** updated: content script gets `sourceType: 'script'` +
+  `InputEvent` + `getComputedStyle` globals; popup.js added to page globals.
+
+**Verification:** `npm run lint` clean · `npm test` 114/114 pass.
+
+**Still open for next sessions:**
+- E2: double-click synonyms (DataMuse API proxy), sentence rewriter with
+  multiple alternatives, per-site grammar toggles persisted to storage.
+- E3: Tab-to-accept AI continuation, tone widget, Web Store packaging.
+- Manual smoke pass of the extension in a real browser.
+
+---
+
 ## Session 2026-08-26 — Phase 6: docs pass + close-out ✅
 
 **Goal:** defects 20, 21, 22 — make every document describe the code as it

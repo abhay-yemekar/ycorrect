@@ -1,18 +1,14 @@
 /**
  * yCorrect extension — background service worker.
  *
- * Context-menu item → POST the selection to the local yCorrect server
- * (/api/ai) → open a popup window showing original vs. suggestion with a
- * Copy action. The server URL is configurable on the options page
- * (chrome.storage.sync, default http://localhost:3000).
+ * Handles two paths:
+ * 1. Context-menu item → POST to /api/ai → open result popup (legacy v0.2 path)
+ * 2. Content-script messages → proxy to /api/grammar or /api/ai → return response
  *
- * The mode is sent as a KEY from the server's fixed paraphrase-mode map
- * (v0.2: free-text modes are rejected). `Fluency` = "fix awkward phrasing"
- * matches this item's "improve" intent.
+ * The server URL is configurable via the options page (chrome.storage.sync).
  */
 
 const DEFAULT_SERVER = 'http://localhost:3000';
-const MODE_KEY = 'Fluency';
 
 async function getServerUrl() {
   const stored = await chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER });
@@ -20,9 +16,8 @@ async function getServerUrl() {
   return url;
 }
 
+// ─── Context-menu path (legacy v0.2) ───────────────────────────
 function openResult(payload) {
-  // Payload goes through storage.session — suggestion text can exceed safe
-  // URL length, and the result page needs it after the window opens.
   chrome.storage.session.set({ result: payload }).then(() => {
     chrome.windows.create({
       url: 'result.html',
@@ -46,7 +41,7 @@ async function improveSelection(text) {
     const res = await fetch(`${base}/api/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, mode: MODE_KEY }),
+      body: JSON.stringify({ text, mode: 'Fluency' }),
     });
 
     if (!res.ok) {
@@ -82,3 +77,48 @@ chrome.contextMenus.onClicked.addListener((info) => {
   if (info.menuItemId !== 'ycorrect' || !info.selectionText) return;
   improveSelection(info.selectionText);
 });
+
+// ─── Content-script message handlers ────────────────────────────
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'openApp') {
+    chrome.tabs.create({ url: 'http://localhost:3000' });
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (msg.type === 'checkGrammar') {
+    checkGrammar(msg.text).then(sendResponse).catch(() => sendResponse({ matches: [] }));
+    return true; // async response
+  }
+
+  if (msg.type === 'rewrite') {
+    rewrite(msg.text, msg.mode).then(sendResponse).catch(() => sendResponse({ suggestion: '' }));
+    return true; // async response
+  }
+
+  return false;
+});
+
+async function checkGrammar(text) {
+  const base = await getServerUrl();
+  const res = await fetch(`${base}/api/grammar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) return { matches: [] };
+  const data = await res.json();
+  return { matches: data.matches || [] };
+}
+
+async function rewrite(text, mode) {
+  const base = await getServerUrl();
+  const res = await fetch(`${base}/api/ai`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, mode: mode || 'Humanize', strength: 0.5, variant: 1 }),
+  });
+  if (!res.ok) return { suggestion: '' };
+  const data = await res.json();
+  return { suggestion: typeof data.text === 'string' ? data.text : '' };
+}

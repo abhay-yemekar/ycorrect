@@ -1,19 +1,28 @@
 {
   "manifest_version": 3,
   "name": "yCorrect — Writing assistant",
-  "version": "0.2.0",
-  "description": "Improve selected text with your local yCorrect assistant.",
+  "version": "0.3.0",
+  "description": "In-page grammar check and AI rewriting on any website. Works with your local yCorrect server.",
   "permissions": ["contextMenus", "storage"],
   "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
   "background": { "service_worker": "background.js" },
   "action": {
     "default_title": "yCorrect",
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": [],
+      "run_at": "document_idle"
+    }
+  ],
   "options_ui": {
     "page": "options.html",
     "open_in_tab": false

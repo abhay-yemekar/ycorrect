@@ -13,6 +13,7 @@ const browserGlobals = {
   localStorage: 'readonly',
   navigator: 'readonly',
   location: 'readonly',
+  getComputedStyle: 'readonly',
   history: 'readonly',
   fetch: 'readonly',
   console: 'readonly',
@@ -91,8 +92,17 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: extensionGlobals },
   },
   {
+    // Content scripts run as classic scripts in a document context.
+    files: ['extension/content.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'script',
+      globals: { ...extensionGlobals, ...browserGlobals, InputEvent: 'readonly' },
+    },
+  },
+  {
     // Extension pages run in a document context, unlike the service worker.
-    files: ['extension/options.js', 'extension/result.js'],
+    files: ['extension/options.js', 'extension/result.js', 'extension/popup.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',

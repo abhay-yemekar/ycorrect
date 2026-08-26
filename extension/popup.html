@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>yCorrect</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    font: 13px/1.5 system-ui, -apple-system, sans-serif;
+    margin: 0; padding: 14px;
+    min-width: 260px;
+    color: #1a202c;
+  }
+  .header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .header img { width: 22px; height: 22px; }
+  .header h1 { margin: 0; font-size: 15px; font-weight: 600; }
+  .version {
+    font-size: 10px; background: #e2e8f0; border-radius: 4px;
+    padding: 1px 5px; color: #718096;
+  }
+  .section { margin-bottom: 12px; }
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: #718096; margin-bottom: 6px; font-weight: 600;
+  }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0;
+  }
+  .toggle-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px;
+  }
+  .toggle-icon {
+    width: 18px; height: 18px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+  .toggle-switch {
+    position: relative; width: 36px; height: 20px;
+    background: #cbd5e0; border-radius: 10px;
+    cursor: pointer; transition: background .2s;
+  }
+  .toggle-switch.on { background: #0f766e; }
+  .toggle-switch::after {
+    content: '';
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; transition: transform .2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  }
+  .toggle-switch.on::after { transform: translateX(16px); }
+  .status {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #718096; margin-bottom: 10px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #dc2626;
+  }
+  .status-dot.connected { background: #16a34a; }
+  .open-app {
+    display: block; width: 100%; padding: 8px;
+    border-radius: 6px; border: none;
+    background: #0f766e; color: #fff;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; text-align: center;
+    text-decoration: none;
+    transition: background .15s;
+  }
+  .open-app:hover { background: #0d6b64; }
+  .site-name {
+    font-size: 12px; color: #1a202c;
+    background: #edf2f7; padding: 3px 8px;
+    border-radius: 4px; margin-bottom: 8px;
+    display: inline-block;
+  }
+  .hint {
+    font-size: 11px; color: #a0aec0;
+    margin-top: 10px; line-height: 1.4;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a202c; color: #e2e8f0; }
+    .toggle-switch { background: #4a5568; }
+    .status-dot { background: #dc2626; }
+    .status-dot.connected { background: #16a34a; }
+    .site-name { background: #2d3748; color: #e2e8f0; }
+    .version { background: #2d3748; color: #a0aec0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <img src="icons/icon48.png" alt="">
+  <h1>yCorrect</h1>
+  <span class="version">0.3.0</span>
+</div>
+
+<div class="status" id="status">
+  <div class="status-dot" id="status-dot"></div>
+  <span id="status-text">Checking server…</span>
+</div>
+
+<div class="section">
+  <div class="site-name" id="site-name">this site</div>
+  <div class="toggle-row">
+    <span class="toggle-label">
+      <span class="toggle-icon">✦</span> Enable on this site
+    </span>
+    <div class="toggle-switch on" id="toggle-site"></div>
+  </div>
+  <div class="toggle-row">
+    <span class="toggle-label">
+      <span class="toggle-icon">✓</span> Grammar check
+    </span>
+    <div class="toggle-switch on" id="toggle-grammar"></div>
+  </div>
+</div>
+
+<a class="open-app" id="open-app" href="http://localhost:3000" target="_blank">Open yCorrect</a>
+
+<div class="hint">
+  Right-click selected text → Improve with yCorrect<br>
+  Click the green dot on text fields for the full assistant.
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

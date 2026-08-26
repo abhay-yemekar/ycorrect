@@ -1,0 +1,321 @@
+/* yCorrect content-script styles — injected into shadow root. */
+/* Scoped by #ycorrect-shadow-host via shadow DOM. */
+
+/* ── Badge (floating dot) ──────────────────────────────────── */
+#yc-badge {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: auto;
+  cursor: pointer;
+  display: none;
+}
+.yc-badge-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0f766e;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  transition: transform .15s;
+}
+.yc-badge-dot:hover {
+  transform: scale(1.2);
+}
+
+/* ── Toolbar ───────────────────────────────────────────────── */
+#yc-toolbar {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  padding: 8px;
+  display: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  max-width: 340px;
+  color: #1a202c;
+}
+.yc-toolbar-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.yc-toolbar-row:last-child {
+  margin-bottom: 0;
+}
+.yc-mode {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f7fafc;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all .1s;
+  color: #1a202c;
+}
+.yc-mode:hover {
+  background: #edf2f7;
+}
+.yc-mode.active {
+  background: #0f766e;
+  color: #fff;
+  border-color: #0f766e;
+}
+.yc-action {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: #1a202c;
+  transition: background .1s;
+}
+.yc-action:hover {
+  background: #edf2f7;
+}
+.yc-toolbar-info {
+  font-size: 11px;
+  color: #718096;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 6px;
+}
+.yc-issue-count {
+  font-weight: 600;
+  color: #0f766e;
+}
+.yc-toggle {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  color: #1a202c;
+}
+.yc-link {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: #0f766e;
+  text-decoration: underline;
+}
+
+/* ── Fix card (inline suggestion) ──────────────────────────── */
+#yc-fix-card {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  padding: 10px 12px;
+  display: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  max-width: 280px;
+  color: #1a202c;
+}
+.yc-fix-suggestion {
+  margin-bottom: 8px;
+}
+.yc-fix-label {
+  display: block;
+  font-size: 11px;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 2px;
+}
+.yc-fix-text {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f766e;
+  background: #f0fdf4;
+  border-radius: 6px;
+  padding: 6px 8px;
+  border-left: 3px solid #0f766e;
+}
+.yc-fix-actions {
+  display: flex;
+  gap: 6px;
+}
+.yc-fix-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: #1a202c;
+  transition: all .1s;
+}
+.yc-fix-btn:hover {
+  background: #edf2f7;
+}
+.yc-fix-btn.apply {
+  background: #0f766e;
+  color: #fff;
+  border-color: #0f766e;
+}
+.yc-fix-btn.apply:hover {
+  background: #0d6b64;
+}
+
+/* ── Rewrite chip (selection) ──────────────────────────────── */
+#yc-rewrite-chip {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: auto;
+  display: none;
+}
+.yc-rewrite-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  background: #0f766e;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15,118,110,.3);
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: transform .1s;
+}
+.yc-rewrite-btn:hover {
+  transform: scale(1.04);
+}
+
+/* ── Rewrite result card ───────────────────────────────────── */
+#yc-rewrite-result {
+  position: fixed;
+  z-index: 2147483647;
+  pointer-events: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  padding: 10px 12px;
+  display: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  max-width: 320px;
+  color: #1a202c;
+}
+.yc-rewrite-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #0f766e;
+  margin-bottom: 6px;
+}
+.yc-rewrite-suggestion {
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: #f0fdf4;
+  border-radius: 6px;
+  border-left: 3px solid #0f766e;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.yc-rewrite-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Underlines ────────────────────────────────────────────── */
+.yc-underline {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.yc-misspelling, .yc-grammar {
+  text-decoration-color: #dc2626;
+  background: #fef2f2;
+}
+.yc-clarity {
+  text-decoration-color: #2563eb;
+  background: #eff6ff;
+}
+.yc-style {
+  text-decoration-color: #ca8a04;
+  background: #fefce8;
+}
+.yc-other {
+  text-decoration-color: #dc2626;
+  background: #fef2f2;
+}
+.yc-underline:hover {
+  background: #fef08a !important;
+}
+
+/* ── Overlay (mirrored textarea) ───────────────────────────── */
+#yc-overlay {
+  position: fixed;
+  pointer-events: auto;
+  overflow: hidden;
+  word-wrap: break-word;
+  color: transparent;
+  caret-color: transparent;
+  border: 1px solid transparent;
+  margin: 0;
+  z-index: 2147483647;
+}
+
+/* ── Dark mode support ─────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  #yc-toolbar, #yc-fix-card, #yc-rewrite-result {
+    background: #1a202c;
+    border-color: #2d3748;
+    color: #e2e8f0;
+  }
+  .yc-mode, .yc-action, .yc-toggle {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  .yc-mode:hover, .yc-action:hover {
+    background: #4a5568;
+  }
+  .yc-mode.active {
+    background: #0f766e;
+    color: #fff;
+    border-color: #0f766e;
+  }
+  .yc-fix-btn {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  .yc-fix-btn:hover {
+    background: #4a5568;
+  }
+  .yc-fix-text {
+    background: #1a202c;
+    color: #6ee7b7;
+  }
+  .yc-rewrite-suggestion {
+    background: #1a202c;
+    color: #6ee7b7;
+  }
+  .yc-link {
+    color: #6ee7b7;
+  }
+}
