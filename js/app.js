@@ -17,14 +17,12 @@ import { initFindReplace } from './findReplace.js';
 import { initDocSearch } from './search.js';
 import { initExport } from './export.js';
 import { initAccessibility } from './accessibility.js';
-import { initLoadingStyles } from './loading.js';
 import {
   getCurrentDoc, persistCurrent,
 } from './documents.js';
 
 // ─── Initialize all modules ───────────────────────────────────────
 
-initLoadingStyles();
 const editor = initEditor();
 initGrammarPanel();
 initAI();
