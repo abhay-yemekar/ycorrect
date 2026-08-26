@@ -1,23 +1,17 @@
 /**
  * Zero-dependency in-memory rate limiter.
  *
- * Tracks request counts per IP using a sliding-window counter.
- * Old entries are pruned on each check to keep memory bounded.
+ * Tracks request counts per IP using a fixed-window counter.
+ * Old entries are pruned periodically to keep memory bounded.
+ *
+ * Each limiter instance owns its counters: the 120/min general API budget
+ * and the 20/min AI budget are independent (they previously shared one map,
+ * so grammar traffic could exhaust the AI budget).
  */
 
 const WINDOW_MS = 60_000; // 1 minute
 const MAX_REQUESTS = Number(process.env.YCORRECT_RATE_LIMIT || 120);
 const CLEANUP_INTERVAL = 300_000; // prune every 5 min
-
-const hits = new Map(); // ip → { count, resetAt }
-
-// Periodic cleanup to prevent memory leak from abandoned IPs
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, data] of hits) {
-    if (now > data.resetAt) hits.delete(ip);
-  }
-}, CLEANUP_INTERVAL);
 
 /**
  * Returns a middleware function.
@@ -30,6 +24,18 @@ export function createRateLimiter(opts = {}) {
   const max = opts.max ?? MAX_REQUESTS;
   const windowMs = opts.windowMs ?? WINDOW_MS;
   const message = opts.message || 'Too many requests. Please slow down.';
+
+  const hits = new Map(); // ip → { count, resetAt } — per limiter instance
+
+  // Periodic cleanup to prevent memory leak from abandoned IPs.
+  // unref'd so tests and short-lived processes can exit cleanly.
+  const cleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, data] of hits) {
+      if (now > data.resetAt) hits.delete(ip);
+    }
+  }, CLEANUP_INTERVAL);
+  if (typeof cleanup.unref === 'function') cleanup.unref();
 
   return function rateLimit(req, res) {
     const ip = req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
