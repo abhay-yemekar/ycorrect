@@ -63,20 +63,30 @@ export function setIssues(issues) {
   renderOverlay();
 }
 
-export function renderOverlay() {
-  const plain = editor.value;
+/**
+ * Build the overlay HTML for a piece of text and its issues.
+ *
+ * Pure and DOM-free so the offset arithmetic is unit-testable in Node:
+ * every issue is sliced into per-line segments, overlapping issues are
+ * resolved by severity rank (red > blue > yellow), and all text is escaped.
+ *
+ * @param {string} plain — the exact editor text the offsets refer to
+ * @param {object[]} issues — [{ offset, length, rule }]
+ * @returns {string} HTML for #overlay
+ */
+export function renderOverlayHtml(plain, issues) {
   const lines = plain.split('\n');
   let html = '';
   let pos = 0;
 
   for (const line of lines) {
-    const hits = currentIssues
+    const hits = issues
       .filter(i => i.offset < pos + line.length && i.offset + i.length > pos)
       .map(i => ({
         a: Math.max(i.offset, pos) - pos,
         b: Math.min(i.offset + i.length, pos + line.length) - pos,
         cls: classFor(i),
-        idx: currentIssues.indexOf(i),
+        idx: issues.indexOf(i),
       }))
       .sort((x, y) => x.a - y.a || y.b - x.b);
 
@@ -105,7 +115,11 @@ export function renderOverlay() {
     pos += line.length + 1;
   }
 
-  overlay.innerHTML = html;
+  return html;
+}
+
+export function renderOverlay() {
+  overlay.innerHTML = renderOverlayHtml(editor.value, currentIssues);
   overlay.scrollTop = editor.scrollTop;
 }
 

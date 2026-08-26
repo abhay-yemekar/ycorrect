@@ -7,7 +7,10 @@ import { $ } from './utils.js';
 
 // ─── Flesch Reading Ease ──────────────────────────────────────────
 
-function fleschReadingEase(text) {
+/**
+ * Flesch Reading Ease (0–100, higher = easier). Exported for tests.
+ */
+export function fleschReadingEase(text) {
   const trimmed = text.trim();
   if (!trimmed) return '—';
 
@@ -29,7 +32,6 @@ export function updateStats(text, issueCount) {
   const readTimeEl = $('#readTime');
   const fkEl = $('#fkScore');
   const issueEl = $('#issueCount');
-  const titleEl = $('#title');
 
   if (wordEl) wordEl.textContent = `${words} words`;
   if (charEl) charEl.textContent = `${text.length} chars`;
