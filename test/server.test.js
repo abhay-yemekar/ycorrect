@@ -76,6 +76,24 @@ describe('API routes', () => {
     assert.deepEqual(JSON.parse(res.body).matches, []);
   });
 
+  test('POST /api/grammar batched paragraphs: empty list (Phase 4)', async () => {
+    const res = await post('/api/grammar', JSON.stringify({ paragraphs: [] }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(JSON.parse(res.body).paragraphMatches, []);
+  });
+
+  test('POST /api/grammar batched paragraphs: empty strings are offline-safe', async () => {
+    const res = await post('/api/grammar', JSON.stringify({ paragraphs: ['', ''] }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(JSON.parse(res.body).paragraphMatches, [[], []]);
+  });
+
+  test('POST /api/grammar batched paragraphs: non-string entries rejected', async () => {
+    const res = await post('/api/grammar', JSON.stringify({ paragraphs: ['fine', 42] }));
+    assert.equal(res.status, 400);
+    assert.match(res.body, /string/i);
+  });
+
   test('POST with invalid JSON returns 400', async () => {
     const res = await post('/api/grammar', 'this is not json{');
     assert.equal(res.status, 400);

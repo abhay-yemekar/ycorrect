@@ -5,6 +5,7 @@
 
 import { $, esc, notify, setStatus } from './utils.js';
 import { getEditor, getOverlay, setIssues, replaceAt } from './editor.js';
+import { splitParagraphs, stitchMatches, sortMatches } from './paragraphs.js';
 import { getIgnoredKeys, ignoreIssuePermanently } from './documents.js';
 import { pushUndoState } from './shortcuts.js';
 import { announce } from './accessibility.js';
@@ -27,6 +28,19 @@ function issueKey(issue) {
 
 // ─── Check runner ─────────────────────────────────────────────────
 
+// Per-paragraph result cache (Phase 4): unchanged paragraphs are served
+// from cache and only dirty paragraphs are sent to the server, which
+// checks them in ONE batched LanguageTool request.
+const paraCache = new Map(); // paragraph text → paragraph-relative matches
+const PARA_CACHE_MAX = 300;
+
+function cachePut(key, value) {
+  if (paraCache.size >= PARA_CACHE_MAX) {
+    paraCache.delete(paraCache.keys().next().value); // FIFO eviction
+  }
+  paraCache.set(key, value);
+}
+
 export async function runCheck() {
   const editor = getEditor();
   const text = editor.value;
@@ -43,18 +57,57 @@ export async function runCheck() {
   setStatus('Checking…');
 
   try {
-    const res = await fetch('/api/grammar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    const data = await res.json();
+    const paragraphs = splitParagraphs(text);
+    const results = new Array(paragraphs.length).fill(null);
+    const dirty = [];
 
-    if (!res.ok) throw new Error(data.error || 'Grammar check failed');
-    if (id !== seq) return; // stale request
+    paragraphs.forEach((p, i) => {
+      if (!p.text.trim()) {
+        results[i] = [];
+        return;
+      }
+      const cached = paraCache.get(p.text);
+      if (cached) results[i] = cached;
+      else dirty.push({ index: i, text: p.text });
+    });
+
+    if (dirty.length > 0) {
+      const res = await fetch('/api/grammar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paragraphs: dirty.map(d => d.text) }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Grammar check failed');
+      if (id !== seq) return; // stale request
+
+      const fresh = data.paragraphMatches || [];
+      dirty.forEach((d, k) => {
+        const matches = fresh[k] || [];
+        results[d.index] = matches;
+        cachePut(d.text, matches);
+      });
+    }
+
+    if (id !== seq) return;
+
+    // Stitch against the CURRENT split: a paragraph edited while the
+    // request was in flight gets no matches here (never misplaced
+    // underlines) and is covered by the next scheduled check.
+    const current = splitParagraphs(editor.value);
+    const byText = new Map();
+    paragraphs.forEach((p, i) => {
+      if (results[i] && !byText.has(p.text)) byText.set(p.text, results[i]);
+    });
+
+    const all = sortMatches(stitchMatches(
+      current,
+      current.map(p => byText.get(p.text) || [])
+    ));
 
     const ignored = new Set(getIgnoredKeys());
-    issues = (data.matches || []).filter(m => !ignored.has(issueKey(m)));
+    issues = all.filter(m => !ignored.has(issueKey(m)));
     setIssues(issues);
     setStatus('Saved locally');
   } catch (err) {

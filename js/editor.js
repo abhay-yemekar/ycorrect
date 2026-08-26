@@ -26,15 +26,28 @@ function classFor(issue) {
 
 let editor, overlay;
 let currentIssues = [];
+let lastText = ''; // text the stored issue offsets refer to
 
 // ─── Init ─────────────────────────────────────────────────────────
 
 export function initEditor() {
   editor = $('#editor');
   overlay = $('#overlay');
+  lastText = editor.value;
 
   editor.addEventListener('scroll', () => {
     overlay.scrollTop = editor.scrollTop;
+  });
+
+  // Live offset shifting (Phase 4): while the user types, shift stored
+  // issue offsets immediately so underlines stay anchored to the right
+  // characters instead of drifting until the debounced check returns.
+  editor.addEventListener('input', () => {
+    const next = editor.value;
+    if (next === lastText) return;
+    currentIssues = shiftIssues(currentIssues, lastText, next);
+    lastText = next;
+    renderOverlay();
   });
 
   return editor;
@@ -116,6 +129,7 @@ export function setText(next, caret = null) {
   if (caret !== null) editor.setSelectionRange(caret, caret);
 
   currentIssues = shiftIssues(currentIssues, prev, next);
+  lastText = next;
   renderOverlay();
 
   editor.dispatchEvent(new Event('input', { bubbles: true }));
@@ -142,6 +156,7 @@ export function replaceAt(offset, length, replacement) {
 export function setDocumentText(text) {
   editor.value = text;
   currentIssues = [];
+  lastText = text;
   renderOverlay();
 }
 
@@ -149,6 +164,7 @@ export function setDocumentText(text) {
 
 export function setIssues(issues) {
   currentIssues = issues;
+  lastText = editor.value; // fresh results describe the current text
   renderOverlay();
 }
 
