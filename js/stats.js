@@ -8,7 +8,13 @@ import { $ } from './utils.js';
 // ─── Flesch Reading Ease ──────────────────────────────────────────
 
 /**
- * Flesch Reading Ease (0–100, higher = easier). Exported for tests.
+ * Flesch READING EASE (higher = easier; can go negative for very dense
+ * text — we no longer clamp, which used to disguise hard text as
+ * mid-range). Exported for tests.
+ *
+ * Syllables are counted as vowel-run groups — crude ("quiet" = 2,
+ * "queue" = 1) but deterministic and dependency-free. Good enough for a
+ * directional signal, not for grading (defect 23).
  */
 export function fleschReadingEase(text) {
   const trimmed = text.trim();
@@ -19,7 +25,7 @@ export function fleschReadingEase(text) {
   const syllables = (trimmed.match(/[aeiouy]+/gi) || []).length;
 
   const score = 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words);
-  return Math.max(0, Math.min(100, Math.round(score)));
+  return Math.round(score);
 }
 
 // ─── Update all stats ─────────────────────────────────────────────
@@ -35,10 +41,10 @@ export function updateStats(text) {
   const wordEl = $('#wordCount');
   const charEl = $('#charCount');
   const readTimeEl = $('#readTime');
-  const fkEl = $('#fkScore');
+  const readEaseEl = $('#readEase');
 
   if (wordEl) wordEl.textContent = `${words} words`;
   if (charEl) charEl.textContent = `${text.length} chars`;
   if (readTimeEl) readTimeEl.textContent = `${words ? Math.max(1, Math.round(words / 200)) : 0} min read`;
-  if (fkEl) fkEl.textContent = `FK ${fleschReadingEase(text)}`;
+  if (readEaseEl) readEaseEl.textContent = `Reading ease ${fleschReadingEase(text)}`;
 }

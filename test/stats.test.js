@@ -26,6 +26,13 @@ describe('fleschReadingEase', () => {
     assert.ok(easy > dense, `expected easy (${easy}) > dense (${dense})`);
   });
 
+  test('genuinely dense text reports a NEGATIVE score (defect 23: no clamping)', () => {
+    const dense = fleschReadingEase(
+      'Incomprehensible anthropomorphized terminological inflexibilities constitutionalized.'
+    );
+    assert.ok(dense < 0, `expected a negative score for very dense text, got ${dense}`);
+  });
+
   test('a single sentence without terminal punctuation still scores', () => {
     const score = fleschReadingEase('no punctuation here at all');
     assert.equal(typeof score, 'number');
