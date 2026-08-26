@@ -28,7 +28,9 @@ const rules = [
     category: 'Clarity',
   },
   {
-    pattern: /\s{2,}/g,
+    // Horizontal whitespace only — \s would match newlines and report every
+    // blank line between paragraphs as an error (v0.2 defect 1)
+    pattern: /[ \t]{2,}/g,
     message: 'Remove extra spaces.',
     replacement: () => ' ',
     category: 'Typography',
