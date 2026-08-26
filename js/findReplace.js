@@ -10,9 +10,7 @@
  */
 
 import { $, notify } from './utils.js';
-import { getEditor } from './editor.js';
-import { persistCurrent } from './documents.js';
-import { runCheck } from './grammar.js';
+import { getEditor, setText } from './editor.js';
 
 let findBar = null;
 let matches = [];
@@ -159,13 +157,12 @@ function replaceOne() {
   const replaceText = $('#replaceInput').value;
   const match = matches[currentMatchIndex];
 
-  const text = editor.value;
-  editor.value = text.slice(0, match.start) + replaceText + text.slice(match.end);
-  editor.setSelectionRange(match.start, match.start + replaceText.length);
+  setText(
+    editor.value.slice(0, match.start) + replaceText + editor.value.slice(match.end),
+    match.start + replaceText.length
+  );
 
-  persistCurrent(editor.value);
   performSearch();
-  runCheck();
   notify('Replaced 1 occurrence');
 }
 
@@ -178,20 +175,17 @@ function replaceAll() {
   if (!replaceText || matches.length === 0) return;
 
   const editor = getEditor();
-  const text = editor.value;
   const count = matches.length;
 
   // Replace from end to start to preserve offsets
-  let newText = text;
+  let newText = editor.value;
   for (let i = matches.length - 1; i >= 0; i--) {
     const m = matches[i];
     newText = newText.slice(0, m.start) + replaceText + newText.slice(m.end);
   }
 
-  editor.value = newText;
-  persistCurrent(newText);
+  setText(newText, editor.selectionStart);
   performSearch();
-  runCheck();
   notify(`Replaced ${count} occurrences`);
 }
 

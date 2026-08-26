@@ -7,7 +7,7 @@ import { $, notify } from './utils.js';
 import {
   getDocs, getCurrentId, switchTo, createDoc, renameDoc, deleteDoc, persistCurrent,
 } from './documents.js';
-import { getEditor } from './editor.js';
+import { getEditor, setDocumentText } from './editor.js';
 import { runCheck } from './grammar.js';
 import { updateStats } from './stats.js';
 import { hidePopover } from './grammar.js';
@@ -46,10 +46,10 @@ function openDoc(id) {
 
   const doc = switchTo(id);
   const text = doc.text || '';
-  editor.value = text;
+  setDocumentText(text);
 
   hidePopover();
-  updateStats(text, 0);
+  updateStats(text);
   renderDocs();
 
   const saveState = $('#saveState');
@@ -68,9 +68,9 @@ function handleNewDoc(promptUser = true) {
   if (promptUser && editor.value.trim() && !confirm('Start a new document?')) return;
 
   createDoc();
-  editor.value = '';
+  setDocumentText('');
   hidePopover();
-  updateStats('', 0);
+  updateStats('');
   renderDocs();
 
   const saveState = $('#saveState');
@@ -121,8 +121,8 @@ export function initSidebar() {
         const doc = getDocs().find(d => d.id === getCurrentId());
         const editor = getEditor();
         if (doc && editor) {
-          editor.value = doc.text || '';
-          updateStats(editor.value, 0);
+          setDocumentText(doc.text || '');
+          updateStats(editor.value);
           runCheck();
         }
         return;

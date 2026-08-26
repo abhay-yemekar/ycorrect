@@ -6,9 +6,7 @@
  */
 
 import { $, esc, notify, getSelectedText } from './utils.js';
-import { getEditor } from './editor.js';
-import { persistCurrent } from './documents.js';
-import { runCheck } from './grammar.js';
+import { getEditor, setText } from './editor.js';
 import { pushUndoState } from './shortcuts.js';
 
 // ─── Paraphrase modes ─────────────────────────────────────────────
@@ -183,19 +181,16 @@ function handleReplaceOrCopy(e) {
     pushUndoState('AI replacement');
 
     if (start !== end) {
-      // Replace selection
-      const text = editor.value;
-      editor.value = text.slice(0, start) + value + text.slice(end);
-      editor.setSelectionRange(start, start + value.length);
+      // Replace the selection
+      setText(editor.value.slice(0, start) + value + editor.value.slice(end), start);
     } else {
-      // Replace entire document
-      editor.value = value;
-      editor.setSelectionRange(0, value.length);
+      // Replace the entire document
+      setText(value, 0);
     }
 
+    // setText fires the input pipeline: overlay shifts, stats update,
+    // the document saves, and a fresh grammar check is scheduled.
     notify('Replaced');
-    persistCurrent(editor.value);
-    runCheck();
   }
 }
 

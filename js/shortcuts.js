@@ -10,9 +10,8 @@
  */
 
 import { notify } from './utils.js';
-import { getEditor } from './editor.js';
+import { getEditor, setText } from './editor.js';
 import { persistCurrent } from './documents.js';
-import { runCheck } from './grammar.js';
 import { toggleTheme } from './theme.js';
 
 // ─── Undo/Redo stack ──────────────────────────────────────────────
@@ -71,14 +70,12 @@ function undo() {
     cursor: editor.selectionStart,
   });
 
-  // Restore previous state
+  // Restore previous state (setText shifts issues, re-renders the overlay,
+  // and fires the input pipeline so stats/save/check all follow)
   const state = undoStack.pop();
-  editor.value = state.text;
-  editor.setSelectionRange(state.cursor, state.cursor);
+  setText(state.text, state.cursor);
 
   notify(`Undone: ${state.description}`);
-  persistCurrent(state.text);
-  runCheck();
 }
 
 /**
@@ -102,12 +99,9 @@ function redo() {
 
   // Restore redo state
   const state = redoStack.pop();
-  editor.value = state.text;
-  editor.setSelectionRange(state.cursor, state.cursor);
+  setText(state.text, state.cursor);
 
   notify('Redone');
-  persistCurrent(state.text);
-  runCheck();
 }
 
 // ─── Manual save ──────────────────────────────────────────────────

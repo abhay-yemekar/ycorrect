@@ -4,9 +4,9 @@
  */
 
 import { $, esc, notify, setStatus } from './utils.js';
-import { getEditor, setIssues, replaceAt } from './editor.js';
-import { persistCurrent } from './documents.js';
+import { getEditor, getOverlay, setIssues, replaceAt } from './editor.js';
 import { pushUndoState } from './shortcuts.js';
+import { announce } from './accessibility.js';
 
 // ─── State ────────────────────────────────────────────────────────
 
@@ -60,6 +60,13 @@ export async function runCheck() {
   }
 
   renderIssuesPanel();
+
+  // One announcement per completed check — never per keystroke (defect 6).
+  if (id === seq) {
+    announce(issues.length
+      ? `${issues.length} writing issue${issues.length === 1 ? '' : 's'} found`
+      : 'No writing issues found');
+  }
 }
 
 // ─── Debounced check ──────────────────────────────────────────────
@@ -84,11 +91,11 @@ function applyReplacement(idx, replacementIndex) {
   }
 
   pushUndoState('Grammar fix');
+  // replaceAt routes through setText(), which shifts the remaining issues,
+  // re-renders the overlay, and fires the input pipeline (save + re-check).
   replaceAt(issue.offset, issue.length, value);
   hidePopover();
   notify('Suggestion applied');
-  persistCurrent(getEditor().value);
-  runCheck();
 }
 
 // ─── Ignore issue ─────────────────────────────────────────────────
@@ -204,6 +211,25 @@ function renderIssuesPanel() {
 // ─── Panel event delegation ───────────────────────────────────────
 
 export function initGrammarPanel() {
+  // Underline clicks: grammar owns the overlay listener so a click opens
+  // the popover directly (defect 4 — the old CustomEvent had no listener).
+  const overlay = getOverlay();
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      const span = e.target.closest('.u');
+      if (!span) return;
+
+      const idx = +span.dataset.i;
+      const issue = issues[idx];
+      if (!issue) return;
+
+      const editor = getEditor();
+      editor.focus();
+      editor.setSelectionRange(issue.offset, issue.offset + issue.length);
+      showPopover(idx, span.getBoundingClientRect());
+    });
+  }
+
   const pane = $('#tabIssues');
   if (!pane) return;
 

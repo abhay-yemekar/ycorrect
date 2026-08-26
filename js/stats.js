@@ -24,18 +24,21 @@ export function fleschReadingEase(text) {
 
 // ─── Update all stats ─────────────────────────────────────────────
 
-export function updateStats(text, issueCount) {
+/**
+ * Update the word/char/read-time stats. #issueCount is intentionally NOT
+ * touched here — it has exactly one writer, renderIssuesPanel() in
+ * grammar.js, so the badge never flashes to 0 on every keystroke (defect 6).
+ */
+export function updateStats(text) {
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
 
   const wordEl = $('#wordCount');
   const charEl = $('#charCount');
   const readTimeEl = $('#readTime');
   const fkEl = $('#fkScore');
-  const issueEl = $('#issueCount');
 
   if (wordEl) wordEl.textContent = `${words} words`;
   if (charEl) charEl.textContent = `${text.length} chars`;
   if (readTimeEl) readTimeEl.textContent = `${words ? Math.max(1, Math.round(words / 200)) : 0} min read`;
   if (fkEl) fkEl.textContent = `FK ${fleschReadingEase(text)}`;
-  if (issueEl) issueEl.textContent = issueCount;
 }

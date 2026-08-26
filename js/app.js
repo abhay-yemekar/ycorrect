@@ -5,7 +5,7 @@
  */
 
 import { $, setStatus } from './utils.js';
-import { initEditor } from './editor.js';
+import { initEditor, setDocumentText } from './editor.js';
 import { runCheck, scheduleCheck, hidePopover, initGrammarPanel } from './grammar.js';
 import { initAI, scheduleToneCheck, checkTone } from './ai.js';
 import { updateStats } from './stats.js';
@@ -41,14 +41,14 @@ initAccessibility();
 
 const currentDoc = getCurrentDoc();
 const initial = currentDoc.text || '';
-editor.value = initial;
+setDocumentText(initial);
 
 // Update title
 const titleEl = $('#title');
 if (titleEl) titleEl.textContent = currentDoc.name;
 
-// Update stats
-updateStats(initial, 0);
+// Update stats (#issueCount is owned by renderIssuesPanel in grammar.js)
+updateStats(initial);
 
 // Run initial grammar check if there's content
 if (initial.trim()) runCheck();
@@ -61,7 +61,7 @@ editor.addEventListener('input', () => {
   const text = editor.value;
 
   hidePopover();
-  updateStats(text, 0);
+  updateStats(text);
 
   setStatus('Unsaved changes');
 
@@ -124,10 +124,5 @@ if (location.protocol === 'file:') {
   const banner = $('#fileBanner');
   if (banner) banner.style.display = 'flex';
 }
-
-// ─── Scroll sync ──────────────────────────────────────────────────
-
-editor.addEventListener('scroll', () => {
-  const overlay = $('#overlay');
-  if (overlay) overlay.scrollTop = editor.scrollTop;
-});
+// Scroll sync lives only in editor.js (defect 11 — there were two listeners
+// doing the same job, and the second one reached past the module boundary).

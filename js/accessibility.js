@@ -153,22 +153,8 @@ export function initAccessibility() {
   const panel = document.querySelector('.panel');
   if (panel) panel.setAttribute('role', 'complementary');
 
-  // Announce grammar check results
-  const observer = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      if (m.target.id === 'issueCount') {
-        const count = m.target.textContent;
-        if (count !== '0') {
-          announce(`${count} writing issues found`);
-        } else {
-          announce('No writing issues found');
-        }
-      }
-    }
-  });
-
-  const issueCount = $('#issueCount');
-  if (issueCount) {
-    observer.observe(issueCount, { childList: true, characterData: true, subtree: true });
-  }
+  // Grammar results are announced explicitly by grammar.js — one
+  // announcement per completed check. A MutationObserver here used to
+  // fire on every keystroke because updateStats wrote 0 into #issueCount
+  // (defect 6).
 }
