@@ -36,6 +36,49 @@ export function requireEnum(body, field, allowed) {
 }
 
 /**
+ * Validate a field is a finite number within [min, max].
+ * The field is optional — undefined/null passes (use defaults at call site).
+ */
+export function requireNumber(body, field, { min, max } = {}) {
+  const val = body[field];
+  if (val === undefined || val === null) return null;
+  if (typeof val !== 'number' || !Number.isFinite(val)) {
+    return { status: 400, error: `Field "${field}" must be a number` };
+  }
+  if (min !== undefined && val < min) {
+    return { status: 400, error: `Field "${field}" must be >= ${min}` };
+  }
+  if (max !== undefined && val > max) {
+    return { status: 400, error: `Field "${field}" must be <= ${max}` };
+  }
+  return null;
+}
+
+/**
+ * Validate the writing-goals shape: an optional object whose values are
+ * short strings. Rejects non-objects and non-string values so goals can
+ * never smuggle structured content into prompts.
+ */
+const GOAL_KEYS = ['audience', 'formality', 'genre'];
+const GOAL_MAX_LEN = 100;
+
+export function validateGoals(goals) {
+  if (goals === undefined || goals === null) return null;
+  if (typeof goals !== 'object' || Array.isArray(goals)) {
+    return { status: 400, error: 'Field "goals" must be an object' };
+  }
+  for (const [key, value] of Object.entries(goals)) {
+    if (!GOAL_KEYS.includes(key)) {
+      return { status: 400, error: `Unknown goal: "${key}"` };
+    }
+    if (typeof value !== 'string' || value.length > GOAL_MAX_LEN) {
+      return { status: 400, error: `Goal "${key}" must be a string of at most ${GOAL_MAX_LEN} characters` };
+    }
+  }
+  return null;
+}
+
+/**
  * Validate that text is within a reasonable size limit.
  * Prevents sending huge payloads to the AI/grammar APIs.
  */
