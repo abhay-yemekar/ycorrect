@@ -117,3 +117,20 @@ export function deleteDoc(id) {
 
   return getCurrentDoc();
 }
+
+// ─── Per-document ignore lists (defect 9) ─────────────────────
+// Ignored issues are keyed on `rule.id + message` and stored WITH the
+// document, so they are scoped to it and survive reloads. Documents from
+// before this field existed simply have none — treated as empty.
+
+export function getIgnoredKeys() {
+  return getCurrentDoc()?.ignoredIssues || [];
+}
+
+export function ignoreIssuePermanently(key) {
+  const doc = getCurrentDoc();
+  if (!doc) return;
+  if (!Array.isArray(doc.ignoredIssues)) doc.ignoredIssues = [];
+  if (!doc.ignoredIssues.includes(key)) doc.ignoredIssues.push(key);
+  saveDocs(docs);
+}

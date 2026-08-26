@@ -5,6 +5,7 @@
 
 import { $, esc, notify, setStatus } from './utils.js';
 import { getEditor, getOverlay, setIssues, replaceAt } from './editor.js';
+import { getIgnoredKeys, ignoreIssuePermanently } from './documents.js';
 import { pushUndoState } from './shortcuts.js';
 import { announce } from './accessibility.js';
 
@@ -12,10 +13,14 @@ import { announce } from './accessibility.js';
 
 let issues = [];
 let seq = 0;
-const ignoreKeys = new Set();
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
+/**
+ * Stable identity of an issue: rule id + message. Local rules carry ids
+ * (localRules.js) and LanguageTool provides its own rule.id, so ignores
+ * are precise and persist per document (defect 9).
+ */
 function issueKey(issue) {
   return `${issue.rule?.id || ''}|${issue.message}`;
 }
@@ -48,7 +53,8 @@ export async function runCheck() {
     if (!res.ok) throw new Error(data.error || 'Grammar check failed');
     if (id !== seq) return; // stale request
 
-    issues = (data.matches || []).filter(m => !ignoreKeys.has(issueKey(m)));
+    const ignored = new Set(getIgnoredKeys());
+    issues = (data.matches || []).filter(m => !ignored.has(issueKey(m)));
     setIssues(issues);
     setStatus('Saved locally');
   } catch (err) {
@@ -104,7 +110,8 @@ function ignoreIssue(idx) {
   const issue = issues[idx];
   if (!issue) return;
 
-  ignoreKeys.add(issueKey(issue));
+  // Persisted with THIS document — the toast now tells the truth (defect 9)
+  ignoreIssuePermanently(issueKey(issue));
   issues = issues.filter(i => i !== issue);
   setIssues(issues);
   renderIssuesPanel();
