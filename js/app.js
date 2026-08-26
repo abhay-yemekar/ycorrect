@@ -16,12 +16,17 @@ import { initShortcuts } from './shortcuts.js';
 import { initFindReplace } from './findReplace.js';
 import { initDocSearch } from './search.js';
 import { initExport } from './export.js';
+import { initBackup } from './backup.js';
 import { initAccessibility } from './accessibility.js';
 import {
-  getCurrentDoc, persistCurrent,
+  initDocuments, getCurrentDoc, persistCurrent,
 } from './documents.js';
 
 // ─── Initialize all modules ───────────────────────────────────────
+
+// Documents must load (IndexedDB + legacy migration) before anything reads
+// them. Top-level await — this module only runs after the library is ready.
+await initDocuments();
 
 const editor = initEditor();
 initGrammarPanel();
@@ -33,6 +38,7 @@ initShortcuts();
 initFindReplace();
 initDocSearch();
 initExport();
+initBackup();
 initAccessibility();
 
 // ─── Load initial document ────────────────────────────────────────

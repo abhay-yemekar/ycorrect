@@ -35,6 +35,7 @@ const browserGlobals = {
   AbortSignal: 'readonly',
   indexedDB: 'readonly',
   IDBKeyRange: 'readonly',
+  structuredClone: 'readonly',
   confirm: 'readonly',
   prompt: 'readonly',
   alert: 'readonly',
