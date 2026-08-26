@@ -4,8 +4,8 @@ A personal, open-source Grammarly-style writing assistant. yCorrect checks gramm
 
 ## Features
 
-- **Grammar & Spelling** — Real-time checking via LanguageTool + 12 built-in pattern rules
-- **AI Paraphrasing** — 8 modes (Standard, Fluency, Formal, Academic, Simple, Creative, Expand, Shorten) with strength control
+- **Grammar & Spelling** — Real-time checking via LanguageTool + 13 built-in pattern rules, listed in reading order, clickable underlines, per-document "ignore forever"
+- **AI Paraphrasing** — 8 modes (Standard, Fluency, Formal, Academic, Simple, Creative, Expand, Shorten) with strength control — modes are a fixed vocabulary validated server-side
 - **AI Summarization** — Key sentences, bullet points, or paragraph format
 - **Tone Detection** — Live tone and formality analysis
 - **Dark Mode** — System preference detection + manual toggle
@@ -13,13 +13,14 @@ A personal, open-source Grammarly-style writing assistant. yCorrect checks gramm
 - **Find & Replace** — In-editor search with match navigation
 - **Document Search** — Search across all saved documents
 - **Undo/Redo** — Full undo stack for AI actions and grammar fixes
-- **Multi-Document** — Sidebar for managing multiple documents (all saved locally)
+- **Multi-Document** — Sidebar for managing multiple documents, persisted in IndexedDB with automatic migration from the older localStorage format
+- **Backup** — One-click export/import of ALL documents as JSON; imports never overwrite existing documents
 - **Writing Goals** — Audience, formality, and genre settings that guide AI rewrites
 - **Readability Score** — Flesch reading ease score in the status bar
 - **Keyboard Shortcuts** — Full keyboard navigation support
 - **Accessibility** — ARIA live regions, focus management, skip links
-- **Security** — Rate limiting, CSP headers, CORS config, input validation
-- **Chrome Extension** — Right-click "Improve with yCorrect" on any webpage
+- **Security** — Rate limiting (per-limiter budgets), strict CSP with no inline styles, CORS config, input validation, proxy-aware client IP handling
+- **Chrome Extension** — Right-click "Improve with yCorrect" on any webpage → popup comparing original vs. suggestion with Copy; configurable server URL
 
 ## Quick Start
 
@@ -47,51 +48,67 @@ Open **http://localhost:3000**
 | `Ctrl+Shift+F` | Search across documents |
 | `Ctrl+Shift+D` | Toggle dark mode |
 
+## Development
+
+Zero runtime dependencies — the server is raw `node:http` and the frontend is vanilla ES modules loaded directly by the browser.
+
+```bash
+npm start        # serve http://localhost:3000
+npm test         # 114 tests across 12 files (built-in node:test, no external calls)
+npm run lint     # ESLint 9 (dev-only dependency)
+npm run check    # lint + tests together
+```
+
+CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architecture notes, invariants, and owner constraints live in [`CLAUDE.md`](CLAUDE.md); the v0.2 upgrade journal is [`PROGRESS.md`](PROGRESS.md).
+
 ## Project Structure
 
 ```
-├── js/                    # Frontend ES modules (14 files)
+├── js/                    # Frontend ES modules (17 files)
 │   ├── app.js            # Entry point — wires all modules
-│   ├── editor.js         # Textarea, overlay, underlines
+│   ├── editor.js         # Textarea, overlay, underlines, live offset shifting
 │   ├── grammar.js        # Grammar checking, issues panel, popover
 │   ├── ai.js             # Paraphrase, summarize, tone detection
-│   ├── documents.js      # Multi-document CRUD + localStorage
+│   ├── documents.js      # Document CRUD + IndexedDB persistence + backup merge
+│   ├── backup.js         # Export/import all documents as JSON
+│   ├── paragraphs.js     # Paragraph splitting/joining for batched checks
 │   ├── sidebar.js        # Document list UI
-│   ├── theme.js          # Dark mode with system preference
+│   ├── theme.js          # Dark mode — set before first paint, no flash
 │   ├── shortcuts.js      # Undo/redo + keyboard shortcuts
 │   ├── findReplace.js    # Ctrl+F find & replace
 │   ├── search.js         # Ctrl+Shift+F cross-doc search
 │   ├── export.js         # Download as TXT/MD/HTML
 │   ├── accessibility.js  # ARIA, focus management, skip links
-│   ├── loading.js        # Spinners, skeleton UI
-│   ├── stats.js          # Word count, readability score
-│   ├── tabs.js           # Tab navigation
+│   ├── stats.js          # Word count, Flesch reading ease
+│   ├── tabs.js           # ARIA tab navigation
 │   └── utils.js          # Shared helpers
 │
-├── server/                # Backend modules (14 files)
+├── server/                # Backend modules (17 files)
 │   ├── app.js            # Entry point — middleware + routes
-│   ├── static.js         # Static file server
+│   ├── static.js         # Static file server (dotfiles blocked, 400 on bad URLs)
 │   ├── middleware/
 │   │   ├── cors.js       # Configurable CORS
-│   │   ├── rateLimit.js  # Per-IP rate limiting
-│   │   ├── security.js   # CSP, X-Frame-Options, etc.
+│   │   ├── rateLimit.js  # Per-IP fixed-window limiting (proxy-aware)
+│   │   ├── security.js   # CSP with nonce'd theme bootstrap, other headers
 │   │   ├── logger.js     # Request logging with timing
-│   │   └── validate.js   # Input validation + sanitization
+│   │   └── validate.js   # Input validation + sanitization (wired into routes)
 │   ├── routes/
-│   │   ├── grammar.js    # Grammar check endpoint
-│   │   ├── ai.js         # AI rewrite endpoint
+│   │   ├── grammar.js    # Grammar check: {text} or batched {paragraphs}
+│   │   ├── ai.js         # AI rewrite — mode must be a known key
 │   │   ├── summarize.js  # Summarize endpoint
 │   │   ├── tone.js       # Tone detection endpoint
 │   │   └── health.js     # Health check endpoint
 │   └── services/
-│       ├── gemini.js     # Gemini API client
+│       ├── gemini.js     # Gemini client — API key sent as a header
 │       ├── languagetool.js # LanguageTool API client
-│       └── localRules.js # 12 pattern-based grammar rules
+│       ├── localRules.js # 13 pattern-based grammar rules with stable ids
+│       ├── modes.js      # Server-side paraphrase mode map + temperature bands
+│       └── paragraphs.js # Join/split paragraph batches around LanguageTool
 │
-├── extension/             # Chrome extension (Manifest V3)
-├── index.html             # Main UI
-├── styles.css             # Responsive + dark mode styles
-└── package.json
+├── extension/             # Chrome extension (Manifest V3) — options page, result popup
+├── scripts/               # Zero-dependency dev tooling (icon generator)
+├── test/                  # node:test suites (12 files, no external calls)
+├── index.html             # Main UI (theme bootstrap inline in <head>)
 ```
 
 ## API Endpoints
@@ -99,8 +116,8 @@ Open **http://localhost:3000**
 | Endpoint | Method | Rate Limit | Description |
 |----------|--------|------------|-------------|
 | `/api/health` | GET | — | Server status and AI config |
-| `/api/grammar` | POST | 120/min | Grammar check via LanguageTool + local rules |
-| `/api/ai` | POST | 20/min | AI rewrite/paraphrase via Gemini |
+| `/api/grammar` | POST | 120/min | `{text}` whole-document check, or `{paragraphs: [...]}` (max 200) for cache-aware clients; returns `{matches}` or `{paragraphMatches}` |
+| `/api/ai` | POST | 20/min | AI rewrite via Gemini — `mode` must be one of the 8 known keys |
 | `/api/summarize` | POST | 20/min | AI summarization via Gemini |
 | `/api/tone` | POST | 20/min | Tone/formality analysis via Gemini |
 
@@ -112,22 +129,24 @@ Open **http://localhost:3000**
 | `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model to use |
 | `PORT` | No | `3000` | Server port |
 | `YCORRECT_CORS_ORIGIN` | No | `*` | Comma-separated allowed origins |
-| `YCORRECT_RATE_LIMIT` | No | `120` | Max requests per minute |
+| `YCORRECT_RATE_LIMIT` | No | `120` | Max requests per minute (general API budget) |
+| `TRUST_PROXY` | No | unset | Set to `1` ONLY behind a trusted reverse proxy — enables honoring `x-forwarded-for` for rate-limit keys. Unset, the socket address is used exclusively and forwarded headers are ignored. |
 
 ## Chrome Extension
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select the `extension/` folder
-4. Right-click selected text → **Improve with yCorrect**
+4. Right-click selected text → **Improve with yCorrect** → a popup shows the original next to the suggestion, with a Copy button
+5. Right-click the toolbar icon → **Options** to change the server URL (default `http://localhost:3000`; `localhost`/`127.0.0.1` on any port work out of the box)
 
 ## Security
 
-- API keys stay server-side (never exposed to the browser)
-- Rate limiting per IP (120 req/min general, 20 req/min for AI)
-- Security headers (CSP, X-Frame-Options, X-Content-Type-Options)
-- Input validation and text sanitization
-- Path traversal protection on static files
+- API keys stay server-side (never exposed to the browser) and are sent to Gemini as a request header, never in the URL
+- Rate limiting per IP with independent budgets (120 req/min general, 20 req/min AI); `x-forwarded-for` trusted only when `TRUST_PROXY=1`
+- Strict CSP — no inline scripts except the hashed theme bootstrap, no inline styles, no third-party font/CDN origins
+- Input validation on every route; paraphrase modes restricted to a server-side vocabulary
+- Path traversal AND dotfile protection on static files (traversal → 403, `/.env` → 404)
 
 ## License
 

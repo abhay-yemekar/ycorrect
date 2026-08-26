@@ -6,6 +6,67 @@ this file alone: what was done, what was decided, what is next.
 
 ---
 
+## Session 2026-08-26 — Phase 6: docs pass + close-out ✅
+
+**Goal:** defects 20, 21, 22 — make every document describe the code as it
+actually is, with counted numbers.
+
+**Done:**
+
+- **Counted, not estimated:** `js/` = 17 files, `server/` = 17 files,
+  local rules = 13 (stable ids verified by grep), tests = **114 passing
+  across 12 test files** (`node --test` reports 21 nested suites — the
+  README initially said "12 suites"; corrected to "12 files", the honest unit).
+- **README.md** rewritten: Features now name what v0.2 actually shipped
+  (reading-order issues, per-document ignores, IndexedDB persistence, JSON
+  backup import/export, server-side mode vocabulary, header-carried API key,
+  extension options page + result popup); Project Structure matches the real
+  tree including new modules (`backup.js`, `paragraphs.js`,
+  `services/modes.js`, `services/paragraphs.js`, `scripts/`, `test/`);
+  API table documents `{text}` vs batched `{paragraphs}` responses; env table
+  documents `TRUST_PROXY`; Security section matches the tightened CSP and
+  dotfile/traversal handling; new Development section lists `npm start` /
+  `test` / `lint` / `check` and CI.
+- **documents/how_to_run.md**: startup output replaced with the real ASCII
+  banner (plus the plain `yCorrect running at …` line the server also
+  prints); `npm start` named the supported entry with `node server.js`
+  described as the compat shim; feature walkthrough updated for live offset
+  shifting, Flesch reading ease labelling, backup export/import, IndexedDB
+  migration; extension section covers the options page, result popup, and
+  default-allowed localhost/127.0.0.1 hosts.
+- **Defect 22:** deleted `app.js.old` from the repo root (it was gitignored
+  but still on disk).
+- **Smoke-pass finds:** `/api/health` reported hardcoded `version: '0.1.0'`
+  while the package is 0.2.0 — now read from `package.json`, with a
+  regression test pinning them together. Also caught the docs claiming
+  `/.env` → 403 when the server (correctly, per Phase 0) returns 404;
+  README corrected.
+- Smoke pass results: two-paragraph text with deliberate `teh` + `could of`
+  → local rule match at offset 0 ahead of LanguageTool matches (reading
+  order holds); `/.env` → 404; `/%` → 400; banner prints both the ASCII box
+  and the plain URL line exactly as how_to_run.md now describes. UI-side
+  steps (popover click, Apply, undo, Creative paraphrase, reload) still
+  need a human at the browser.
+
+**Verification this session:** `npm test` → 114/114 pass · `npm run lint`
+→ clean.
+
+**Still open before v0.2 is called done:**
+
+1. Manual smoke pass per the brief's checklist (type a two-paragraph draft
+   with a deliberate `teh` and `could of`, apply a fix, undo, paraphrase in
+   Creative mode, reload).
+2. Push the docs-pass commit — owner runs it themselves over the
+   `github-personal` SSH alias: `git push origin main`. (The 28 phase
+   commits were pushed on 2026-08-26; only this session's commit remains.)
+
+**Decisions:**
+
+- Test counts quoted as "N tests across N files", not "suites" — node:test
+  nests suites inside files and reports both; files are the stable number.
+
+---
+
 ## Session 2026-08-26 — Phase 0: guardrails ✅
 
 **Goal:** make every later change verifiable — test gate, lint gate, CI.
@@ -88,13 +149,15 @@ path (defect 2), `crypto.randomUUID()` doc ids (3), underline-click popover
 | 17 | CSP allows unused origins + inline script/style | ⬜ Phase 2/3 |
 | 18 | Static serving minimal (no HEAD/ETag/compression) | ⬜ Accepted limitation (local tool) |
 | 19 | Dead code: unused exports/imports/write-only state | ✅ Fixed (Phase 0, pulled forward) |
-| 20 | README counts wrong | ⬜ Docs pass |
-| 21 | how_to_run.md startup message / entry drift | ⬜ Docs pass |
-| 22 | `app.js.old` still in repo root | ⬜ Docs pass |
+| 20 | README counts wrong | ✅ Fixed (Phase 6) |
+| 21 | how_to_run.md startup message / entry drift | ✅ Fixed (Phase 6) |
+| 22 | `app.js.old` still in repo root | ✅ Fixed (Phase 6) |
 | 23 | FK badge mislabelled; negative scores hidden | ⬜ Phase 3 |
 | N1 | findReplace `countEl` undeclared (strict-mode crash) | ✅ Fixed (Phase 0) |
 | N2 | `GET /.env` served the live API key | ✅ Fixed (Phase 0) |
 | N3 | API and AI rate limiters shared one counter | ✅ Fixed (Phase 0) |
 
-**Current state:** 57/57 tests pass · lint clean · CI configured (not yet
-pushed) · runtime dependencies: none.
+**Current state:** 114/114 tests pass · lint clean · phase commits pushed;
+CI live on GitHub · runtime dependencies: none. All 23 numbered defects + N1–N3 are
+fixed or explicitly accepted (18 = accepted limitation). Remaining: manual
+smoke pass, then owner pushes.
