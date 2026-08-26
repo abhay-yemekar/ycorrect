@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0f766e">
 <title>yCorrect — Write with confidence</title>
+<script>
+(() => {
+  try {
+    const saved = localStorage.getItem('ycorrectTheme');
+    const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  } catch {}
+})();
+</script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,7 +24,7 @@
   <div class="doc-title"><h1 id="title">Untitled document</h1><span id="saveState">Saved locally</span><button id="rename" class="rename" title="Rename document">✎</button></div>
   <div class="top-actions">
     <button id="toneBadge" class="badge" title="Detected tone · click to refresh">Tone —</button>
-    <span id="fkScore" class="badge" title="Flesch reading ease score (higher is easier to read)">FK —</span>
+    <span id="readEase" class="badge" title="Flesch Reading Ease — higher is easier to read (dense text can score negative)">Reading ease —</span>
     <button class="check-btn" id="check">✓ Check writing</button>
     <button class="icon-btn" id="newDoc2" title="New document">＋</button>
     <button class="theme-toggle" id="themeToggle" title="Toggle dark mode (Ctrl+Shift+D)">🌙</button>
@@ -43,17 +52,17 @@
   </section>
 
   <aside class="panel">
-    <div class="panel-tabs">
-      <button class="tab active" data-tab="issues">Issues <em id="issueCount">0</em></button>
-      <button class="tab" data-tab="paraphrase">Paraphrase</button>
-      <button class="tab" data-tab="summarize">Summarize</button>
-      <button class="tab" data-tab="goals">Goals</button>
+    <div class="panel-tabs" role="tablist" aria-label="Assistant panels">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="tabIssues" data-tab="issues">Issues <em id="issueCount">0</em></button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabParaphrase" data-tab="paraphrase" tabindex="-1">Paraphrase</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabSummarize" data-tab="summarize" tabindex="-1">Summarize</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabGoals" data-tab="goals" tabindex="-1">Goals</button>
     </div>
     <div id="panel" class="panel-body">
-      <div id="tabIssues" class="tabpane active">
+      <div id="tabIssues" class="tabpane active" role="tabpanel" tabindex="0" aria-label="Issues">
         <div class="empty"><div class="empty-icon">✦</div><h3>Your writing assistant</h3><p>Issues appear here and as underlines in your text.<br>Red = correctness · blue = clarity · yellow = style</p></div>
       </div>
-      <div id="tabParaphrase" class="tabpane">
+      <div id="tabParaphrase" class="tabpane" role="tabpanel" tabindex="0" aria-label="Paraphrase">
         <p class="hint">Paraphrases the selected text, or the whole document when nothing is selected.</p>
         <label for="paraMode">Mode</label>
         <select id="paraMode">
@@ -71,7 +80,7 @@
         <button class="btn primary" id="paraphraseBtn">Paraphrase</button>
         <div id="paraphraseOut"></div>
       </div>
-      <div id="tabSummarize" class="tabpane">
+      <div id="tabSummarize" class="tabpane" role="tabpanel" tabindex="0" aria-label="Summarize">
         <p class="hint">Summarizes the selected text, or the whole document when nothing is selected.</p>
         <label for="sumStyle">Style</label>
         <select id="sumStyle">
@@ -88,7 +97,7 @@
         <button class="btn primary" id="summarizeBtn">Summarize</button>
         <div id="summarizeOut"></div>
       </div>
-      <div id="tabGoals" class="tabpane">
+      <div id="tabGoals" class="tabpane" role="tabpanel" tabindex="0" aria-label="Goals">
         <p class="hint">These goals guide every AI rewrite, paraphrase and summary.</p>
         <label for="goalAud">Audience</label>
         <select id="goalAud"><option value="General">General</option><option value="Knowledgeable">Knowledgeable</option><option value="Expert">Expert</option></select>

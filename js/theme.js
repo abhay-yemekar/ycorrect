@@ -1,29 +1,28 @@
 /**
- * Theme module — dark mode with system preference detection
- * and localStorage persistence.
+ * Theme module — dark mode with system preference detection.
+ *
+ * The inline script in <head> sets data-theme before first paint (defect 7),
+ * reading the saved choice or the OS preference. This module syncs the
+ * toggle button to that decision, persists ONLY explicit toggles (defect 8 —
+ * persisting on load used to make the detected system theme look like a
+ * user choice, which permanently disabled the system-preference listener),
+ * and follows OS changes while the user hasn't chosen.
  */
 
 import { $ } from './utils.js';
 
 const STORAGE_KEY = 'ycorrectTheme';
 
-/**
- * Get the saved theme or detect system preference.
- */
-function getSavedTheme() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) return saved;
+function systemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 /**
- * Apply theme to the document.
+ * Apply a theme to the document (does not persist).
  */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem(STORAGE_KEY, theme);
 
-  // Update toggle button icon
   const btn = $('#themeToggle');
   if (btn) {
     btn.textContent = theme === 'dark' ? '☀️' : '🌙';
@@ -32,29 +31,27 @@ function applyTheme(theme) {
 }
 
 /**
- * Toggle between light and dark.
+ * Toggle between light and dark — the only place the choice is persisted.
  */
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
-  applyTheme(current === 'dark' ? 'light' : 'dark');
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(STORAGE_KEY, next);
+  applyTheme(next);
 }
 
 /**
  * Initialize the theme system.
  */
 export function initTheme() {
-  // Apply saved/system theme immediately
-  applyTheme(getSavedTheme());
+  // The head script already decided; sync the toggle button to it.
+  applyTheme(document.documentElement.getAttribute('data-theme') || systemTheme());
 
-  // Wire up toggle button
   const btn = $('#themeToggle');
-  if (btn) {
-    btn.addEventListener('click', toggleTheme);
-  }
+  if (btn) btn.addEventListener('click', toggleTheme);
 
-  // Listen for system preference changes
+  // Follow OS-level changes while the user has not made an explicit choice.
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    // Only auto-switch if user hasn't manually set a preference
     if (!localStorage.getItem(STORAGE_KEY)) {
       applyTheme(e.matches ? 'dark' : 'light');
     }

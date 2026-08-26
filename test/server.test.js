@@ -8,6 +8,10 @@
 import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { createServer } from '../server/app.js';
 
 let server;
@@ -174,6 +178,22 @@ describe('security', () => {
     assert.doesNotMatch(csp, /languagetool|googleapis|fonts\.gstatic/);
     assert.match(csp, /script-src 'self'/);
     assert.match(csp, /style-src 'self'/);
+  });
+
+  test('CSP hash matches the theme bootstrap script exactly (defect 7)', async () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+    const m = html.match(/<script>([\s\S]*?)<\/script>/);
+    assert.ok(m, 'index.html has an inline bootstrap script');
+
+    const hash = 'sha256-' + crypto.createHash('sha256').update(m[1]).digest('base64');
+
+    const res = await fetch(`${base}/`);
+    const csp = res.headers.get('content-security-policy');
+    assert.ok(
+      csp.includes(`'${hash}'`),
+      `CSP must allow the exact bootstrap script hash ${hash} — recompute it if index.html changed`
+    );
   });
 
   test('CORS header is present (default open policy)', async () => {
