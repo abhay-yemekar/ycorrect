@@ -1,8 +1,11 @@
 /**
  * Static file server with path traversal protection.
  *
- * Serves files from the project root with proper MIME types and security.
- * Rejects any path that escapes the root directory.
+ * Serves files from the project root with proper MIME types.
+ * - Rejects any path that escapes the root directory (403).
+ * - Rejects malformed percent-encoding with 400 (previously a 500).
+ * - Never serves dotfiles (.env, .git/…) or node_modules (404) — the
+ *   project root contains secrets that must not be reachable by URL.
  */
 
 import fs from 'node:fs/promises';
@@ -26,19 +29,35 @@ const MIME_TYPES = {
   '.md': 'text/plain; charset=utf-8',
 };
 
+function respondJson(res, status, payload) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
+}
+
 export function createStaticServer(root) {
   return async function serveStatic(req, res) {
-    let requested = decodeURIComponent(req.url.split('?')[0]);
-    if (requested === '/') requested = '/index.html';
+    let pathname;
+    try {
+      pathname = decodeURIComponent(req.url.split('?')[0]);
+    } catch {
+      return respondJson(res, 400, { error: 'Malformed URL encoding' }), true;
+    }
 
-    const filePath = path.join(root, requested);
+    if (pathname === '/') pathname = '/index.html';
+
+    const filePath = path.join(root, pathname);
     const relative = path.relative(root, filePath);
 
-    // Path traversal protection
+    // Path traversal protection (checked before the dotfile rule so that
+    // escapes are reported as 403 regardless of what they target)
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Forbidden' }));
-      return true;
+      return respondJson(res, 403, { error: 'Forbidden' }), true;
+    }
+
+    // Never serve dotfiles (.env, .git/config, …) or dependency directories
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.some(s => s.startsWith('.') || s === 'node_modules')) {
+      return respondJson(res, 404, { error: 'Not found' }), true;
     }
 
     try {
@@ -59,9 +78,7 @@ export function createStaticServer(root) {
       return true;
     } catch (err) {
       if (err.code === 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
-        return true;
+        return respondJson(res, 404, { error: 'Not found' }), true;
       }
       throw err;
     }
