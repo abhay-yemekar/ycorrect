@@ -56,6 +56,8 @@ const nodeGlobals = {
   performance: 'readonly',
   crypto: 'readonly',
   Blob: 'readonly',
+  Buffer: 'readonly',
+  __dirname: 'readonly',
 };
 
 const extensionGlobals = {
@@ -81,8 +83,21 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: nodeGlobals },
   },
   {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: nodeGlobals },
+  },
+  {
     files: ['extension/**/*.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: extensionGlobals },
+  },
+  {
+    // Extension pages run in a document context, unlike the service worker.
+    files: ['extension/options.js', 'extension/result.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'module',
+      globals: { ...extensionGlobals, ...browserGlobals },
+    },
   },
   {
     rules: {

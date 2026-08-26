@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>yCorrect</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 14px/1.55 system-ui, sans-serif; margin: 0; padding: 1rem 1.1rem; }
+  h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #0f766e; margin: 0 0 .35rem; }
+  section { margin-bottom: 1.1rem; }
+  .text { white-space: pre-wrap; word-break: break-word; background: #88880f; border-radius: 8px; padding: .7rem .85rem; max-height: 11rem; overflow-y: auto; }
+  .suggestion .text { outline: 2px solid #0f766e33; }
+  .error { border-left: 4px solid #b91c1c; padding: .6rem .8rem; background: #b91c1c14; border-radius: 6px; white-space: pre-wrap; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; display: flex; gap: .5rem; padding: .7rem 1.1rem; background: var(--footer-bg, inherit); box-shadow: 0 -1px 0 #88884d; }
+  button { padding: .5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+  .copy { background: #0f766e; color: #fff; flex: 1; }
+  .replace-hint { color: gray; font-size: .8rem; align-self: center; margin-left: auto; text-align: right; }
+  @media (prefers-color-scheme: dark) {
+    .text { background: #ffffff10; }
+    .replace-hint, .error { color-scheme: dark; }
+  }
+</style>
+</head>
+<body>
+<div id="content"></div>
+<footer id="footer" hidden>
+  <button class="copy" id="copy">Copy suggestion</button>
+  <span class="replace-hint">Paste over your selection<br>(Ctrl/Cmd+V)</span>
+</footer>
+<script src="result.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>yCorrect — Options</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 14px/1.5 system-ui, sans-serif; max-width: 460px; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.1rem; }
+  label { display: block; font-weight: 600; margin-bottom: .35rem; }
+  input[type="url"] {
+    width: 100%; box-sizing: border-box; padding: .5rem .6rem;
+    border: 1px solid #bbb; border-radius: 6px;
+  }
+  .hint { color: gray; font-size: .85rem; margin-top: .75rem; }
+  .row { margin-top: 1rem; display: flex; gap: .5rem; align-items: center; }
+  button { padding: .45rem .9rem; border-radius: 6px; border: none; cursor: pointer; background: #0f766e; color: #fff; }
+  button.secondary { background: transparent; color: inherit; border: 1px solid #8888; }
+  #status { min-width: 8ch; }
+</style>
+</head>
+<body>
+<h1>yCorrect settings</h1>
+
+<label for="serverUrl">Server URL</label>
+<input type="url" id="serverUrl" placeholder="http://localhost:3000">
+
+<p class="hint">
+  The extension talks to your local yCorrect server over HTTP.
+  <code>http://localhost</code> and <code>http://127.0.0.1</code> (any port) are
+  allowed by the extension's permissions. If you host yCorrect elsewhere, add
+  that origin to <code>host_permissions</code> in the manifest, or set
+  <code>YCORRECT_CORS_ORIGIN</code> on the server to include this extension's
+  origin (<code>chrome-extension://…</code>).
+</p>
+
+<div class="row">
+  <button id="save">Save</button>
+  <button id="reset" class="secondary">Reset to default</button>
+  <span id="status" role="status"></span>
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>
