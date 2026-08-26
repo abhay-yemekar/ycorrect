@@ -8,9 +8,9 @@ import assert from 'node:assert/strict';
 import { PARA_MODES, MODE_KEYS, temperatureFor } from '../server/services/modes.js';
 
 describe('PARA_MODES', () => {
-  test('exposes exactly the eight documented modes', () => {
+  test('exposes exactly the nine documented modes', () => {
     assert.deepEqual([...MODE_KEYS].sort(), [
-      'Academic', 'Creative', 'Expand', 'Fluency', 'Formal', 'Shorten', 'Simple', 'Standard',
+      'Academic', 'Creative', 'Expand', 'Fluency', 'Formal', 'Humanize', 'Shorten', 'Simple', 'Standard',
     ]);
   });
 

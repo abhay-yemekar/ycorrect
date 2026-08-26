@@ -9,6 +9,7 @@
 
 const STANDARD_BAND = [0.15, 0.65];
 const CREATIVE_BAND = [0.5, 0.95];
+const HUMANIZE_BAND = [0.3, 0.8];
 
 export const PARA_MODES = {
   Standard: { prompt: 'Paraphrase this text naturally, keeping the same meaning and length.', temp: STANDARD_BAND },
@@ -19,6 +20,7 @@ export const PARA_MODES = {
   Creative: { prompt: 'Rewrite this text in a creative, vivid, engaging style.', temp: CREATIVE_BAND },
   Expand:   { prompt: 'Expand this text with more detail and depth while keeping the same meaning.', temp: CREATIVE_BAND },
   Shorten:  { prompt: 'Shorten this text, keeping only the essential meaning in fewer words.', temp: STANDARD_BAND },
+  Humanize: { prompt: 'Rewrite this text to sound natural, human, and conversational — vary sentence lengths, use contractions where appropriate, and eliminate any robotic or formulaic phrasing.', temp: HUMANIZE_BAND },
 };
 
 export const MODE_KEYS = Object.keys(PARA_MODES);
