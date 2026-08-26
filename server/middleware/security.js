@@ -11,15 +11,17 @@ const HEADERS = {
   'X-XSS-Protection': '1; mode=block',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  // Allow inline styles/scripts (needed for the single-page app) but block
-  // loading external resources unless they come from known CDNs.
+  // Tightened to what the app actually uses (defect 17):
+  // - no inline scripts (the theme bootstrap, added in Phase 3, is allowed
+  //   by SHA-256 hash — test/server.test.js keeps the hash honest)
+  // - no inline styles: all styling lives in styles.css
+  // - no web fonts, and the browser never calls LanguageTool/Gemini
+  //   (the server proxies both), so no external connect/font origins.
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data:",
-    "connect-src 'self' https://api.languagetool.org https://generativelanguage.googleapis.com",
+    "script-src 'self'",
+    "style-src 'self'",
+    "img-src 'self'",
   ].join('; '),
 };
 

@@ -33,7 +33,7 @@ function createFindBar() {
       <button id="findNext" class="find-btn" title="Next (Enter)">↓</button>
       <button id="findClose" class="find-btn find-close" title="Close (Escape)">×</button>
     </div>
-    <div class="find-row find-replace-row" id="replaceRow" style="display:none">
+    <div class="find-row find-replace-row" id="replaceRow">
       <input type="text" id="replaceInput" placeholder="Replace…" class="find-input" autocomplete="off">
       <button id="replaceOne" class="find-btn find-replace-btn" title="Replace">Replace</button>
       <button id="replaceAll" class="find-btn find-replace-btn" title="Replace All">All</button>

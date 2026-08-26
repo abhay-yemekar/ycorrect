@@ -12,6 +12,7 @@ import { $ } from './utils.js';
 
 /**
  * Create an ARIA live region for screen reader announcements.
+ * Styled by #a11yLive rules in styles.css (CSP forbids inline styles).
  */
 function createLiveRegion() {
   const region = document.createElement('div');
@@ -19,7 +20,6 @@ function createLiveRegion() {
   region.setAttribute('role', 'status');
   region.setAttribute('aria-live', 'polite');
   region.setAttribute('aria-atomic', 'true');
-  region.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);';
   document.body.appendChild(region);
   return region;
 }
@@ -87,48 +87,14 @@ export function prefersReducedMotion() {
 
 /**
  * Add skip-to-content link for keyboard users.
+ * Styled by .skip-link rules in styles.css; the :focus rule reveals it.
  */
 function addSkipLink() {
   const link = document.createElement('a');
   link.href = '#editor';
   link.className = 'skip-link';
   link.textContent = 'Skip to editor';
-  link.style.cssText = `
-    position: absolute;
-    top: -100%;
-    left: 16px;
-    background: var(--green);
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 6px;
-    z-index: 999;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-  `;
-  link.addEventListener('focus', () => { link.style.top = '8px'; });
-  link.addEventListener('blur', () => { link.style.top = '-100%'; });
   document.body.insertBefore(link, document.body.firstChild);
-}
-
-/**
- * Improve focus visibility for keyboard users.
- */
-function addFocusStyles() {
-  const style = document.createElement('style');
-  style.textContent = `
-    :focus-visible {
-      outline: 2px solid var(--green);
-      outline-offset: 2px;
-    }
-    button:focus-visible,
-    select:focus-visible,
-    input:focus-visible {
-      outline: 2px solid var(--green);
-      outline-offset: 2px;
-    }
-  `;
-  document.head.appendChild(style);
 }
 
 /**
@@ -136,7 +102,6 @@ function addFocusStyles() {
  */
 export function initAccessibility() {
   addSkipLink();
-  addFocusStyles();
   createLiveRegion();
 
   // Add ARIA labels to key elements

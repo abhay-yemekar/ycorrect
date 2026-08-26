@@ -481,3 +481,42 @@ input[type="range"] { accent-color: var(--green); height: 26px; }
   color: #64748b;
 }
 [data-theme="dark"] .kbd { background: #334155; border-color: #475569; color: #94a3b8; }
+/* ─── Accessibility & CSP-safe styles (moved out of JS, defect 17) ─── */
+
+/* Screen-reader-only live region */
+#a11yLive {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Skip-to-content link: off-canvas until keyboard-focused */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  background: var(--green);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  z-index: 999;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus { top: 8px; }
+
+/* Keyboard focus visibility */
+:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* Export buttons (Goals tab) — replaces inline style attributes */
+.export-label { margin-top: 24px; }
+.export-row { display: flex; gap: 8px; margin-top: 8px; }
+
+/* Find & replace: replace row starts hidden; JS toggles it via CSSOM */
+#replaceRow { display: none; }
