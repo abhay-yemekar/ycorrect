@@ -50,9 +50,14 @@ export async function generate(prompt, temperature = 0.5, json = false) {
   const genConfig = { temperature: Math.min(1, Math.max(0, temperature)) };
   if (json) genConfig.responseMimeType = 'application/json';
 
-  const response = await fetch(`${BASE_URL}/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+  // The key travels in a header, never the query string — URLs land in
+  // proxy logs, crash reports, and error messages (defect 12).
+  const response = await fetch(`${BASE_URL}/${model}:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': process.env.GEMINI_API_KEY,
+    },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: genConfig,
