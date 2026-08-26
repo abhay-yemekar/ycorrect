@@ -34,7 +34,7 @@ let currentId = loadCurrentId();
 
 // Ensure we have a valid current document
 if (!docs.find(d => d.id === currentId)) {
-  currentId = String(Date.now());
+  currentId = crypto.randomUUID();
   docs.push({
     id: currentId,
     name: 'Untitled document',
@@ -75,7 +75,9 @@ export function switchTo(id) {
 }
 
 export function createDoc(name = 'Untitled document') {
-  const id = String(Date.now());
+  // crypto.randomUUID() — Date.now() collided when two documents were
+  // created in the same millisecond (defect 3)
+  const id = crypto.randomUUID();
   docs.push({
     id,
     name,
