@@ -64,6 +64,13 @@ describe('API routes', () => {
     assert.equal(data.status, 'ok');
   });
 
+  test('GET /api/health reports the package version, not a hardcoded one', async () => {
+    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    const res = await fetch(`${base}/api/health`);
+    const data = await res.json();
+    assert.equal(data.version, pkg.version);
+  });
+
   test('POST /api/grammar with empty text returns no matches (offline path)', async () => {
     const res = await post('/api/grammar', JSON.stringify({ text: '' }));
     assert.equal(res.status, 200);
