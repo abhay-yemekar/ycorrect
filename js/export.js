@@ -4,7 +4,7 @@
  * Supports: Plain Text (.txt), Markdown (.md), HTML (.html).
  */
 
-import { $, notify } from './utils.js';
+import { notify } from './utils.js';
 import { getEditor } from './editor.js';
 import { getCurrentDoc } from './documents.js';
 

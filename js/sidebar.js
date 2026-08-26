@@ -11,7 +11,6 @@ import { getEditor } from './editor.js';
 import { runCheck } from './grammar.js';
 import { updateStats } from './stats.js';
 import { hidePopover } from './grammar.js';
-import { pushUndoState } from './shortcuts.js';
 
 // ─── Render document list ─────────────────────────────────────────
 

@@ -5,7 +5,7 @@
  * Activated by Ctrl+Shift+F / Cmd+Shift+F.
  */
 
-import { $, notify, esc } from './utils.js';
+import { $, esc } from './utils.js';
 import { getDocs, getCurrentId } from './documents.js';
 
 let searchOverlay = null;

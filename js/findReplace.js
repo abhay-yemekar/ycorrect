@@ -127,7 +127,7 @@ function highlightMatch(index) {
   editor.focus();
   editor.setSelectionRange(match.start, match.end);
 
-  countEl = $('#findCount');
+  const countEl = $('#findCount');
   if (countEl) countEl.textContent = `${index + 1}/${matches.length}`;
 }
 
@@ -156,7 +156,6 @@ function replaceOne() {
   if (currentMatchIndex < 0 || currentMatchIndex >= matches.length) return;
 
   const editor = getEditor();
-  const findText = $('#findInput').value;
   const replaceText = $('#replaceInput').value;
   const match = matches[currentMatchIndex];
 
@@ -174,10 +173,9 @@ function replaceOne() {
  * Replace all matches.
  */
 function replaceAll() {
-  const findText = $('#findInput').value;
   const replaceText = $('#replaceInput').value;
 
-  if (!findText || matches.length === 0) return;
+  if (!replaceText || matches.length === 0) return;
 
   const editor = getEditor();
   const text = editor.value;

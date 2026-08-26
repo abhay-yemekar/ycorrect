@@ -9,7 +9,7 @@
  * - Ctrl/Cmd + Enter: grammar check (handled in app.js)
  */
 
-import { $, notify } from './utils.js';
+import { notify } from './utils.js';
 import { getEditor } from './editor.js';
 import { persistCurrent } from './documents.js';
 import { runCheck } from './grammar.js';

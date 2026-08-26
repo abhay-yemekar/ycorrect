@@ -5,7 +5,7 @@
  */
 
 import { $, setStatus } from './utils.js';
-import { initEditor, getEditor } from './editor.js';
+import { initEditor } from './editor.js';
 import { runCheck, scheduleCheck, hidePopover, initGrammarPanel } from './grammar.js';
 import { initAI, scheduleToneCheck, checkTone } from './ai.js';
 import { updateStats } from './stats.js';

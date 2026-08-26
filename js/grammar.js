@@ -4,7 +4,7 @@
  */
 
 import { $, esc, notify, setStatus } from './utils.js';
-import { getEditor, setIssues, renderOverlay, replaceAt } from './editor.js';
+import { getEditor, setIssues, replaceAt } from './editor.js';
 import { persistCurrent } from './documents.js';
 import { pushUndoState } from './shortcuts.js';
 
@@ -12,8 +12,7 @@ import { pushUndoState } from './shortcuts.js';
 
 let issues = [];
 let seq = 0;
-let ignoreKeys = new Set();
-let popoverVisible = false;
+const ignoreKeys = new Set();
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -112,7 +111,6 @@ export function hidePopover() {
   const popover = $('#popover');
   if (popover) {
     popover.style.display = 'none';
-    popoverVisible = false;
   }
 }
 
@@ -143,7 +141,6 @@ export function showPopover(idx, rect) {
     `</div>`;
 
   popover.style.display = 'block';
-  popoverVisible = true;
 
   // Position the popover
   const box = editor.closest('.editor-card').getBoundingClientRect();
