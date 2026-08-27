@@ -46,7 +46,7 @@ const STYLES = `
 #yc-badge{position:fixed;z-index:2147483647;pointer-events:auto!important;cursor:pointer;display:none}
 .yc-badge-dot{width:28px;height:28px;border-radius:50%;background:#0f766e;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:bold}
 .yc-badge-dot:hover{transform:scale(1.15)}
-#yc-badge .yc-badge-dot::after{content:'yC';font-size:10px;letter-spacing:-.5px}
+
 /* Toolbar */
 #yc-toolbar{position:fixed;z-index:2147483647;pointer-events:auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px;display:none;font:13px/1.5 system-ui,-apple-system,sans-serif;max-width:340px;color:#1a202c}
 .yc-toolbar-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
