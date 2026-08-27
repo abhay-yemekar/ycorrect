@@ -178,17 +178,29 @@ export function startServer(port = Number(process.env.PORT || 3000)) {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   server.listen(port, '0.0.0.0', () => {
-    const aiStatus = process.env.GEMINI_API_KEY ? '✓ Configured' : '✗ No API key   ';
+    const aiStatus = process.env.GEMINI_API_KEY ? '\u2713 Configured' : '\u2717 No API key';
     const corsStatus = (process.env.YCORRECT_CORS_ORIGIN || '* (open)');
-    console.log(`
-  ┌──────────────────────────────────────────┐
-  │           yCorrect server                │
-  ├──────────────────────────────────────────┤
-  │  Local:  http://localhost:${String(port).padEnd(5)}            │
-  │  AI:     ${aiStatus}              │
-  │  CORS:   ${corsStatus.padEnd(29)}│
-  └──────────────────────────────────────────┘
-  `);
+    const local = `http://localhost:${port}`;
+
+    // Build a properly aligned box
+    const title = '           yCorrect server';
+    const rows = [
+      `Local:  ${local}`,
+      `AI:     ${aiStatus}`,
+      `CORS:   ${corsStatus}`,
+    ];
+    const innerW = Math.max(title.length, ...rows.map(r => r.length));
+    const border = '\u2500'.repeat(innerW + 2);
+    const boxRow = (s) => '  \u2502 ' + s.padEnd(innerW) + ' \u2502';
+    console.log([
+      '',
+      '  \u250C' + border + '\u2510',
+      boxRow(title),
+      '  \u251C' + border + '\u2524',
+      ...rows.map(boxRow),
+      '  \u2514' + border + '\u2518',
+      '',
+    ].join('\n'));
     console.log(`yCorrect running at http://localhost:${port}`);
   });
 
