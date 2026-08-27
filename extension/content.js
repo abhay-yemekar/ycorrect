@@ -1,19 +1,30 @@
 /**
  * yCorrect content script — in-page writing assistant.
  *
- * Detects text fields (textarea, input, contenteditable), shows a floating
- * badge on focus, runs grammar checks via the background worker, renders
- * underline highlights, and offers click-to-fix cards and selection-based
- * AI rewrite with mode chips.
+ * Detects text fields (textarea, input, contenteditable, role="textbox"),
+ * shows a floating badge on focus, runs grammar checks via the background
+ * worker, renders underline highlights, and offers click-to-fix cards and
+ * selection-based AI rewrite with mode chips.
  *
  * All UI lives inside a Shadow DOM so host-page CSS cannot clash.
+ *
+ * Designed to work with React/ProseMirror SPAs (ChatGPT, Notion, etc.)
+ * where native `input` events may not fire on contenteditable elements.
  */
-
 
 
 // ─── Constants ──────────────────────────────────────────────────
 const DEBOUNCE_MS = 850;
-const FIELD_SELECTOR = 'textarea, input[type="text"], input[type="search"], [contenteditable="true"], [contenteditable=""]';
+const POLL_INTERVAL_MS = 2000;
+const FIELD_SELECTOR = [
+  'textarea',
+  'input[type="text"]',
+  'input[type="search"]',
+  'input:not([type])',
+  '[contenteditable="true"]',
+  '[contenteditable=""]',
+  '[role="textbox"]',
+].join(', ');
 
 // ─── State ──────────────────────────────────────────────────────
 let activeField = null;          // the focused editable field
@@ -24,9 +35,12 @@ let toolbarEl = null;            // expanded toolbar with mode chips
 let fixCardEl = null;            // inline fix card
 let rewriteChipEl = null;        // selection "Rewrite" chip
 let debounceTimer = null;
+let pollTimer = null;
 let scrollSyncRAF = null;
+let lastPollText = '';           // for periodic text change detection
 let currentMatches = [];         // grammar matches for current field
-const ignoreSet = new Set();       // session-only ignore keys
+const ignoreSet = new Set();     // session-only ignore keys
+
 const STYLES = `
 /* Badge */
 #yc-badge{position:fixed;z-index:2147483647;pointer-events:auto;cursor:pointer;display:none}
@@ -99,6 +113,39 @@ function ensureShadowHost() {
   return host;
 }
 
+// ─── Field detection (smart — walks up the DOM) ─────────────────
+/**
+ * Given an event target, walk up the DOM to find the nearest editable
+ * element. Handles React/ProseMirror where the focusin target may be
+ * a <p>, <span>, or wrapper <div> inside a contenteditable.
+ */
+function findEditable(el) {
+  if (!el || el === document.body || el === document.documentElement) return null;
+
+  // Direct match first
+  if (el.matches && el.matches(FIELD_SELECTOR)) return el;
+
+  // Check if element is contenteditable (including inherited)
+  if (el.isContentEditable) return el;
+
+  // Walk up to find an editable ancestor (max 10 levels)
+  let cur = el;
+  for (let i = 0; i < 10 && cur && cur !== document.body; i++) {
+    if (cur.isContentEditable) return cur;
+    if (cur.matches && cur.matches(FIELD_SELECTOR)) return cur;
+    cur = cur.parentElement;
+  }
+
+  // Last resort: check if any child of this element is the actual
+  // editable (for shadow DOM or React portals)
+  if (el.querySelector) {
+    const child = el.querySelector(FIELD_SELECTOR);
+    if (child && child.isContentEditable) return child;
+  }
+
+  return null;
+}
+
 // ─── Badge (floating dot near focused field) ────────────────────
 function showBadge(field) {
   ensureShadowHost();
@@ -120,9 +167,11 @@ function hideBadge() {
 function positionBadge(field) {
   if (!badgeEl || !field) return;
   const r = field.getBoundingClientRect();
-  const top = Math.max(r.top + 2, r.top - 24);
+  // Position at top-right of the field, inside the visible area
+  const top = Math.max(4, r.top + 2);
+  const left = Math.min(r.right - 26, window.innerWidth - 26);
   badgeEl.style.top = `${top}px`;
-  badgeEl.style.left = `${r.left + 2}px`;
+  badgeEl.style.left = `${Math.max(4, left)}px`;
 }
 
 // ─── Badge click → toggle toolbar ───────────────────────────────
@@ -277,7 +326,7 @@ function showRewriteChip(sel) {
   rewriteChipEl.id = 'yc-rewrite-chip';
   const range = sel.getRangeAt(0);
   const rect = range.getBoundingClientRect();
-  rewriteChipEl.innerHTML = `<button class="yc-rewrite-btn">✦ Rewrite</button>`;
+  rewriteChipEl.innerHTML = `<button class="yc-rewrite-btn">\u2726 Rewrite</button>`;
   rewriteChipEl.style.top = `${rect.top - 36}px`;
   rewriteChipEl.style.left = `${rect.left}px`;
   rewriteChipEl.style.display = '';
@@ -304,6 +353,7 @@ function getFieldText() {
   if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
     return activeField.value;
   }
+  // For contenteditable / role="textbox", use innerText which preserves line breaks
   return activeField.innerText || activeField.textContent || '';
 }
 
@@ -313,9 +363,11 @@ function setFieldText(text) {
     activeField.value = text;
     activeField.dispatchEvent(new Event('input', { bubbles: true }));
   } else {
-    // contenteditable — set textContent
+    // contenteditable — set textContent then dispatch event
     activeField.textContent = text;
     activeField.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+    // Also dispatch a change event for frameworks that listen for it
+    activeField.dispatchEvent(new Event('change', { bubbles: true }));
   }
 }
 
@@ -367,7 +419,9 @@ function removeOverlay() {
 }
 
 function syncOverlay() {
-  if (!activeOverlay || !activeField || (activeField.tagName !== 'TEXTAREA' && activeField.tagName !== 'INPUT')) return;
+  if (!activeOverlay || !activeField) return;
+  // Only works for textarea / input / contenteditable
+  if (activeField.tagName !== 'TEXTAREA' && activeField.tagName !== 'INPUT' && !activeField.isContentEditable) return;
   const cs = getComputedStyle(activeField);
   const r = activeField.getBoundingClientRect();
   activeOverlay.style.width = `${r.width}px`;
@@ -382,8 +436,8 @@ function syncOverlay() {
   activeOverlay.style.overflow = cs.overflow;
   activeOverlay.style.border = `${cs.borderWidth} solid transparent`;
   activeOverlay.style.padding = cs.padding;
-  activeOverlay.scrollTop = activeField.scrollTop;
-  activeOverlay.scrollLeft = activeField.scrollLeft;
+  activeOverlay.scrollTop = activeField.scrollTop || 0;
+  activeOverlay.scrollLeft = activeField.scrollLeft || 0;
 }
 
 function renderOverlayMatches() {
@@ -410,7 +464,6 @@ function renderOverlayMatches() {
 
 // ─── Contenteditable highlight rendering ────────────────────────
 function renderContentEditableHighlights() {
-  // For contenteditable, we create highlight spans directly in the shadow DOM overlay
   clearAllHighlights();
   if (!activeField || !activeField.isContentEditable) return;
   // Use an overlay positioned over the contenteditable
@@ -452,7 +505,7 @@ function scheduleScrollSync() {
 }
 
 // ─── Grammar check ──────────────────────────────────────────────
-async function runGrammarCheck(_force) {
+async function runGrammarCheck() {
   const text = getFieldText();
   if (!text || text.trim().length < 3) {
     currentMatches = [];
@@ -477,6 +530,13 @@ async function runGrammarCheck(_force) {
   }
 }
 
+function scheduleGrammarCheck() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    if (grammarEnabled && activeField) runGrammarCheck();
+  }, DEBOUNCE_MS);
+}
+
 function renderHighlights() {
   if (!activeField) return;
   if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
@@ -499,7 +559,6 @@ async function rewriteSelection(mode) {
   const selectedText = sel.toString().trim();
   if (!selectedText || selectedText.length < 3) return;
 
-  // Show loading state on the rewrite chip
   hideRewriteChip();
 
   try {
@@ -519,7 +578,6 @@ async function rewriteSelection(mode) {
 function rewriteSentence(match, mode) {
   if (!activeField) return;
   const text = getFieldText();
-  // Find sentence boundaries around the match
   const sentStart = text.lastIndexOf('.', match.offset - 1) + 1;
   const sentEnd = text.indexOf('.', match.offset + match.length);
   const sentence = text.slice(sentStart, sentEnd > 0 ? sentEnd + 1 : text.length).trim();
@@ -540,7 +598,7 @@ async function rewriteWithSentence(sentence, mode, sentStart, sentEnd) {
       const newText = text.slice(0, sentStart) + resp.suggestion + text.slice(sentEnd);
       setFieldText(newText);
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => runGrammarCheck(false), 300);
+      debounceTimer = setTimeout(() => runGrammarCheck(), 300);
     }
   } catch {
     // Server unreachable
@@ -560,7 +618,6 @@ function showRewriteResult(original, suggestion, mode) {
       <button class="yc-fix-btn" data-action="dismiss">Dismiss</button>
     </div>`;
 
-  // Position near the badge
   if (badgeEl) {
     const br = badgeEl.getBoundingClientRect();
     card.style.top = `${br.top}px`;
@@ -583,7 +640,7 @@ function showRewriteResult(original, suggestion, mode) {
     } else if (action === 'copy') {
       try {
         await navigator.clipboard.writeText(suggestion);
-        e.target.textContent = 'Copied ✓';
+        e.target.textContent = 'Copied \u2713';
       } catch {
         e.target.textContent = 'Copy failed';
       }
@@ -594,46 +651,112 @@ function showRewriteResult(original, suggestion, mode) {
 }
 
 // ─── Field focus / blur ─────────────────────────────────────────
-function onFieldFocus(e) {
-  const field = e.target;
-  if (!field.matches?.(FIELD_SELECTOR)) return;
+function activateField(field) {
+  if (!field || field === activeField) return;
   activeField = field;
   currentMatches = [];
   hideFixCard();
   hideRewriteChip();
   showBadge(field);
-  // Start grammar check after a short delay
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => runGrammarCheck(false), DEBOUNCE_MS);
-  // Listen for input
-  field.addEventListener('input', onFieldInput);
+  // Re-position badge and overlay on resize and scroll
+  const onResize = () => positionBadge(field);
+  window.addEventListener('resize', onResize);
   field.addEventListener('scroll', scheduleScrollSync);
+  field._ycResizeCleanup = () => {
+    window.removeEventListener('resize', onResize);
+    field.removeEventListener('scroll', scheduleScrollSync);
+  };
+  // Start grammar check after a short delay
+  scheduleGrammarCheck();
+  // Start polling for text changes (for ProseMirror/React editors)
+  startPolling();
+}
+
+function deactivateField() {
+  if (!activeField) return;
+  // Cleanup resize listener
+  if (activeField._ycResizeCleanup) {
+    activeField._ycResizeCleanup();
+    delete activeField._ycResizeCleanup;
+  }
+  activeField = null;
+  hideBadge();
+  hideToolbar();
+  hideFixCard();
+  hideRewriteChip();
+  removeOverlay();
+  clearAllHighlights();
+  currentMatches = [];
+  stopPolling();
+}
+
+function onFieldFocus(e) {
+  const field = findEditable(e.target);
+  if (!field) return;
+  activateField(field);
 }
 
 function onFieldBlur(e) {
   // Check if the new focus target is inside our shadow DOM
   const related = e.relatedTarget;
-  if (related && related.closest?.('#ycorrect-shadow-host')) return;
-  // Small delay to allow fix-card clicks to register
+  if (related && related.closest && related.closest('#ycorrect-shadow-host')) return;
+  // Small delay to allow fix-card clicks and focus transfers to register
   setTimeout(() => {
-    if (activeField && !activeField.matches(':focus-within')) {
-      activeField = null;
-      hideBadge();
-      hideToolbar();
-      hideFixCard();
-      hideRewriteChip();
-      removeOverlay();
-      clearAllHighlights();
-      currentMatches = [];
+    // Check if any element inside our active field still has focus
+    if (activeField && !activeField.contains(document.activeElement) &&
+        document.activeElement !== activeField &&
+        !activeField.matches(':focus-within')) {
+      deactivateField();
     }
-  }, 200);
+  }, 250);
 }
 
-function onFieldInput() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    if (grammarEnabled) runGrammarCheck(false);
-  }, DEBOUNCE_MS);
+// ─── Document-level input detection (for ProseMirror / React) ───
+/**
+ * ProseMirror and React controlled inputs often don't fire native
+ * `input` events. We listen at the document level for keydown/keyup
+ * and trigger grammar checks when the active field exists.
+ */
+function onDocKeyActivity() {
+  if (!activeField || !grammarEnabled) return;
+  // Check if the key event target is within our active field
+  const target = document.activeElement;
+  if (target && (activeField === target || activeField.contains(target))) {
+    scheduleGrammarCheck();
+  }
+}
+
+function onDocInput() {
+  if (!activeField || !grammarEnabled) return;
+  scheduleGrammarCheck();
+}
+
+// ─── Periodic polling (ultimate fallback) ───────────────────────
+/**
+ * Some editors (ProseMirror, Draft.js, etc.) don't fire any standard
+ * events when text changes. Poll the active field's text every N ms
+ * and trigger a grammar check if it changed.
+ */
+function startPolling() {
+  stopPolling();
+  lastPollText = getFieldText();
+  pollTimer = setInterval(() => {
+    if (!activeField || !grammarEnabled) { stopPolling(); return; }
+    const newText = getFieldText();
+    if (newText !== lastPollText) {
+      lastPollText = newText;
+      scheduleGrammarCheck();
+    }
+    // Also re-sync overlay position (fields may resize on input)
+    if (activeOverlay) syncOverlay();
+  }, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
 }
 
 // ─── Selection change (show Rewrite chip) ───────────────────────
@@ -673,7 +796,7 @@ async function showSynonyms(word, anchorRect) {
 
   synonymCard = document.createElement('div');
   synonymCard.id = 'yc-synonym-card';
-  synonymCard.innerHTML = '<div style="padding:8px;color:#718096;font-size:12px">Loading synonyms…</div>';
+  synonymCard.innerHTML = '<div style="padding:8px;color:#718096;font-size:12px">Loading synonyms\u2026</div>';
   const top = anchorRect.bottom + 6;
   const left = Math.max(4, Math.min(anchorRect.left, window.innerWidth - 300));
   synonymCard.style.top = `${top}px`;
@@ -717,7 +840,6 @@ async function showSynonyms(word, anchorRect) {
 
     synonymCard.innerHTML = html;
 
-    // Handle synonym clicks
     synonymCard.addEventListener('click', (ev) => {
       const btn = ev.target.closest('.yc-syn-word');
       if (btn && activeField) {
@@ -757,6 +879,26 @@ function onDoubleClick(e) {
   showSynonyms(word, rect);
 }
 
+// ─── MutationObserver (SPA navigation + field removal) ──────────
+let bodyObserver = null;
+
+function setupObserver() {
+  if (bodyObserver) return;
+  bodyObserver = new MutationObserver(() => {
+    // If our active field was removed from the DOM, deactivate
+    if (activeField && !document.body.contains(activeField)) {
+      deactivateField();
+    }
+    // If a new editable field appeared and we have no active field,
+    // check if the currently focused element is now inside it
+    if (!activeField && document.activeElement) {
+      const editable = findEditable(document.activeElement);
+      if (editable) activateField(editable);
+    }
+  });
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+}
+
 // ─── Site-enabled check ─────────────────────────────────────────
 async function checkSiteEnabled() {
   try {
@@ -774,18 +916,33 @@ async function init() {
   await checkSiteEnabled();
   if (!siteEnabled) return;
 
-  // Listen for focus on any existing and future fields
+  // --- Field detection ---
+  // Capture-phase focusin catches events before React/ProseMirror handlers
   document.addEventListener('focusin', onFieldFocus, true);
   document.addEventListener('blur', onFieldBlur, true);
+
+  // --- Document-level input detection (critical for ProseMirror/React) ---
+  document.addEventListener('input', onDocInput, true);
+  document.addEventListener('keydown', onDocKeyActivity, true);
+  document.addEventListener('keyup', onDocKeyActivity, true);
+
+  // --- Selection change (Rewrite chip) ---
   document.addEventListener('selectionchange', onSelectionChange);
+
+  // --- Overlay click (underline → fix card) ---
   document.addEventListener('click', onOverlayClick);
 
-  // Double-click synonyms
+  // --- Double-click synonyms ---
   document.addEventListener('dblclick', onDoubleClick);
 
-  // Watch for dynamically added fields (SPA navigation)
-  const observer = new MutationObserver(() => {});
-  observer.observe(document.body, { childList: true, subtree: true });
+  // --- Watch for SPA DOM changes ---
+  setupObserver();
+
+  // --- Also detect current focus on init (page may already have a focused field) ---
+  if (document.activeElement) {
+    const editable = findEditable(document.activeElement);
+    if (editable) activateField(editable);
+  }
 }
 
 init();
