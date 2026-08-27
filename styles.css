@@ -187,6 +187,9 @@ main { display: flex; height: calc(100vh - 62px); }
 .issue-type { font-size: 10px; color: var(--green); font-weight: 750; text-transform: uppercase; letter-spacing: 0.7px; }
 .issue-original { font-size: 13px; margin: 8px 0 4px; color: #6c757a; text-decoration: line-through; text-decoration-color: var(--yellow); }
 .issue-fix { font-size: 13.5px; font-weight: 700; color: #1d292d; }
+.issue-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0; }
+.issue-chip { padding: 3px 10px; border-radius: 5px; border: 1px solid #10b981; background: #f0fdf4; color: #065f46; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.issue-chip:hover { background: #10b981; color: #fff; }
 .issue-msg { font-size: 11px; color: #8b969b; margin-top: 7px; line-height: 1.5; }
 .apply { border: 0; background: var(--green-soft); color: var(--green2); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--ui); }
 .apply:hover { background: #d5ebe7; }
@@ -297,6 +300,8 @@ input[type="range"] { accent-color: var(--green); height: 26px; }
 [data-theme="dark"] .issue:hover { background: #1a2e2a; }
 [data-theme="dark"] .issue-original { color: var(--muted); }
 [data-theme="dark"] .issue-fix { color: #e2e8f0; }
+[data-theme="dark"] .issue-chip { background: #1a2e2a; color: #6ee7b7; border-color: #10b981; }
+[data-theme="dark"] .issue-chip:hover { background: #10b981; color: #fff; }
 [data-theme="dark"] .issue-msg { color: var(--muted); }
 [data-theme="dark"] .apply { background: #1a2e2a; color: var(--green); }
 [data-theme="dark"] .apply:hover { background: #1e3a34; }

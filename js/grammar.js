@@ -251,9 +251,14 @@ function renderIssuesPanel() {
   }
 
   pane.innerHTML = issues.map((x, i) => {
-    const fix = x.replacements?.[0]?.value || 'Review suggestion';
     const editor = getEditor();
     const original = editor.value.slice(x.offset, x.offset + x.length);
+    const repls = (x.replacements || []).slice(0, 4);
+    const chips = repls.length
+      ? `<div class="issue-chips">${repls.map((r, k) =>
+          `<button class="issue-chip" data-i="${i}" data-r="${k}">${esc(r.value)}</button>`
+        ).join('')}</div>`
+      : `<div class="issue-fix">Review suggestion</div>`;
     return (
       `<div class="issue" data-i="${i}">` +
         `<div class="issue-head">` +
@@ -261,9 +266,9 @@ function renderIssuesPanel() {
           `<button class="apply" data-i="${i}">Apply</button>` +
         `</div>` +
         `<div class="issue-original">${esc(original)}</div>` +
-        `<div class="issue-fix">${esc(fix)}</div>` +
+        chips +
         `<div class="issue-msg">${esc(x.message || 'Improve this text')}</div>` +
-        `<button class="btn ghost small rewrite-sentence" data-sentence-rewrite="" data-offset="${x.offset}" data-length="${x.length}" title="Rewrite this sentence">\u2726 Rewrite sentence</button>` +
+        `<button class="btn ghost small rewrite-sentence" data-sentence-rewrite="" data-offset="${x.offset}" data-length="${x.length}" title="Rewrite this sentence">✦ Rewrite sentence</button>` +
       `</div>`
     );
   }).join('');
@@ -295,6 +300,13 @@ export function initGrammarPanel() {
   if (!pane) return;
 
   pane.addEventListener('click', (e) => {
+    // Replacement chip click — apply that specific replacement
+    const chip = e.target.closest('.issue-chip');
+    if (chip) {
+      applyReplacement(+chip.dataset.i, +chip.dataset.r);
+      return;
+    }
+
     const btn = e.target.closest('.apply');
     if (btn) {
       applyReplacement(+btn.dataset.i, 0);
