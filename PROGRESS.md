@@ -6,6 +6,71 @@ this file alone: what was done, what was decided, what is next.
 
 ---
 
+## Session 2026-08-27 — Flagship features: synonyms, continuation, sentence rewrite ✅
+
+**Goal:** close the remaining Grammarly/QuillBot gaps — double-click synonyms,
+Tab-to-accept AI continuation, per-sentence rewrite with alternatives, and
+Humanize mode in the web app dropdown.
+
+**Done:**
+
+- **Synonyms proxy route** (`server/routes/synonyms.js`): queries the free
+  DataMuse API (`api.datamuse.com/words?rel_syn=`), enforces a 50-char
+  max-word policy, caches results in-memory for 5 minutes, returns up to
+  12 synonyms grouped by part-of-speech. Registered in `server/app.js`.
+- **Double-click synonyms** (`js/synonyms.js`): detects word at cursor on
+  double-click, fetches synonyms via the proxy, renders a floating card
+  with POS tabs and one-click insertion. Card dismissed on outside click.
+  Wired into `js/app.js` via `initSynonyms()`.
+- **Double-click synonyms in extension** (`extension/content.js`): same
+  UX injected into any web page — floating synonym card positioned at the
+  word, POS tabs, insert-by-click. Background worker handles the fetch.
+- **Tab-to-accept AI continuation** (`js/continuation.js`): monitors cursor
+  at end-of-text, generates a 1-2 sentence ghost suggestion, renders a
+  translucent preview. Tab accepts, Escape dismisses. Debounced at 800ms.
+  Wired into `js/app.js` via `initContinuation()`.
+- **Per-sentence rewrite** (`js/sentenceRewrite.js`): double-click on any
+  sentence in the editor opens a popup with 3 AI rewrite alternatives
+  (Fluency, Formal, Shorten modes). Click an alternative to replace the
+  sentence. Also available from the grammar issues panel via a ✏️ button
+  on each issue. Wired into `js/app.js` and `js/grammar.js`.
+- **Humanize mode in web app**: added `<option value="humanize">` to the
+  HTML paraphrase dropdown in `index.html` (server already supported it).
+- **Synonyms route test** (`test/synonyms.test.js`): 6 tests covering
+  valid words, invalid chars, XSS payloads, missing params, overlong words.
+- **Synonym card styles** added to `styles.css` (`.yc-synonym-card`,
+  `.yc-synonym-header`, `.yc-synonym-tabs`, `.yc-synonym-list`).
+- **Sentence rewrite styles** added to `styles.css` (`.yc-sentence-rewrite`,
+  `.yc-sentence-option`, `.yc-sentence-option-original`).
+- **Grammar rewrite button**: each grammar issue now shows a ✏️ button
+  that opens the sentence rewrite popup for that issue's sentence.
+
+**Verification:** `npm run lint` clean · `npm test` 120/120 pass.
+
+**What E2 now delivers vs Grammarly/QuillBot:**
+| Feature | Grammarly | QuillBot | yCorrect E2 |
+|---|---|---|---|
+| In-page rewrite toolbar | ✅ | ✅ | ✅ (extension E1) |
+| 9 rewrite modes incl. Humanize | ✅ | ✅ | ✅ |
+| Double-click synonyms | ✅ | ✅ | ✅ |
+| Multiple rewrite alternatives | ✅ | ✅ | ✅ (3 per sentence) |
+| Tab-to-accept AI continuation | ✅ | ❌ | ✅ |
+| Insert rewrite into page | ✅ | ✅ | ✅ (extension) |
+| Grammar underlines + fix cards | ✅ | ✅ | ✅ (extension) |
+| Per-site toggles | ✅ | ✅ | ✅ (extension) |
+| Tone detection | ✅ | ❌ | ✅ |
+| Plagiarism / citations | ✅ paid | ❌ | ❌ (out of scope) |
+
+**Still open for next sessions:**
+- E3: Extension UX polish — animations, keyboard shortcuts, better
+  positioning, dark mode support in extension.
+- E4: Extension settings page with full config (server URL, feature
+  toggles, per-site list, theme).
+- E5: Web Store packaging (signing, store listing, screenshot assets).
+- Manual smoke pass of all new features in a real browser.
+
+---
+
 ## Session 2026-08-26 — E1: flagship in-page extension assistant ✅
 
 **Goal:** turn the extension from context-menu-only into a Grammarly/QuillBot-style
@@ -195,7 +260,8 @@ path (defect 2), `crypto.randomUUID()` doc ids (3), underline-click popover
 | N2 | `GET /.env` served the live API key | ✅ Fixed (Phase 0) |
 | N3 | API and AI rate limiters shared one counter | ✅ Fixed (Phase 0) |
 
-**Current state:** 114/114 tests pass · lint clean · phase commits pushed;
+**Current state:** 120/120 tests pass · lint clean · phase commits pushed;
 CI live on GitHub · runtime dependencies: none. All 23 numbered defects + N1–N3 are
-fixed or explicitly accepted (18 = accepted limitation). Remaining: manual
-smoke pass, then owner pushes.
+fixed or explicitly accepted (18 = accepted limitation). Flagship features
+(synonyms, continuation, sentence rewrite) added in E2. Remaining: manual
+smoke pass, extension polish, Web Store packaging.

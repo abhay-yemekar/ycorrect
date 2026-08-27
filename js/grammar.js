@@ -263,6 +263,7 @@ function renderIssuesPanel() {
         `<div class="issue-original">${esc(original)}</div>` +
         `<div class="issue-fix">${esc(fix)}</div>` +
         `<div class="issue-msg">${esc(x.message || 'Improve this text')}</div>` +
+        `<button class="btn ghost small rewrite-sentence" data-sentence-rewrite="" data-offset="${x.offset}" data-length="${x.length}" title="Rewrite this sentence">\u2726 Rewrite sentence</button>` +
       `</div>`
     );
   }).join('');

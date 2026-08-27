@@ -96,6 +96,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true; // async response
   }
 
+  if (msg.type === 'getSynonyms') {
+    getSynonyms(msg.word).then(sendResponse).catch(() => sendResponse({ synonyms: [], antonyms: [], definitions: [] }));
+    return true; // async response
+  }
+
   return false;
 });
 
@@ -121,4 +126,11 @@ async function rewrite(text, mode) {
   if (!res.ok) return { suggestion: '' };
   const data = await res.json();
   return { suggestion: typeof data.text === 'string' ? data.text : '' };
+}
+
+async function getSynonyms(word) {
+  const base = await getServerUrl();
+  const res = await fetch(`${base}/api/synonyms?word=${encodeURIComponent(word)}`);
+  if (!res.ok) return { synonyms: [], antonyms: [], definitions: [] };
+  return res.json();
 }

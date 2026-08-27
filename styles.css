@@ -520,3 +520,190 @@ input[type="range"] { accent-color: var(--green); height: 26px; }
 
 /* Find & replace: replace row starts hidden; JS toggles it via CSSOM */
 #replaceRow { display: none; }
+
+/* Synonym card (double-click word lookup) */
+.syn-card {
+  position: fixed;
+  z-index: 1000;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
+  padding: 12px 14px;
+  max-width: 300px;
+  min-width: 180px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  animation: synFadeIn .15s ease;
+}
+@keyframes synFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.syn-header {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--green);
+}
+.syn-loading {
+  color: var(--muted);
+  font-style: italic;
+  padding: 4px 0;
+}
+.syn-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+.syn-section {
+  margin-bottom: 8px;
+}
+.syn-section:last-child {
+  margin-bottom: 0;
+}
+.syn-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.syn-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.syn-word {
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  transition: all .1s;
+}
+.syn-word:hover {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.syn-word.ant {
+  border-style: dashed;
+  color: var(--muted);
+}
+.syn-word.ant:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+.syn-def {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.syn-def em {
+  color: var(--green);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* AI continuation ghost text */
+.ai-continuation {
+  position: absolute;
+  color: rgba(15,118,110,.35);
+  font: inherit;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Rewrite sentence button in issues panel */
+.rewrite-sentence {
+  margin-top: 6px;
+  font-size: 11px !important;
+}
+
+/* Sentence rewrite popup */
+.sentence-rewrite-popup {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 8px 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  animation: synFadeIn .15s ease;
+}
+.sr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.sr-mode {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--green);
+  background: rgba(15,118,110,.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.sr-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.sr-close:hover { color: var(--text); }
+.sr-original, .sr-alt {
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.sr-original {
+  background: var(--bg);
+  border-left: 3px solid var(--muted);
+  color: var(--muted);
+}
+.sr-alt {
+  background: rgba(15,118,110,.05);
+  border-left: 3px solid var(--green);
+}
+.sr-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.sr-text {
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.sr-actions {
+  display: flex;
+  gap: 6px;
+}
+.sr-empty {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Highlighted search match in document search */
+mark {
+  background: rgba(15,118,110,.2);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+

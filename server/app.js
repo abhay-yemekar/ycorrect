@@ -45,6 +45,7 @@ import aiRoute from './routes/ai.js';
 import summarizeRoute from './routes/summarize.js';
 import toneRoute from './routes/tone.js';
 import healthRoute from './routes/health.js';
+import synonymsRoute from './routes/synonyms.js';
 
 // ─── Static files ─────────────────────────────────────────────────
 
@@ -79,6 +80,9 @@ const POST_ROUTES = {
 const GET_ROUTES = {
   '/api/health': healthRoute,
 };
+
+// Synonyms route needs special handling (query params)
+const SYNONYMS_PATH = '/api/synonyms';
 
 // ─── Server factory ───────────────────────────────────────────────
 
@@ -129,6 +133,11 @@ export function createServer() {
         const route = GET_ROUTES[req.url];
         if (route) {
           return sendJson(res, 200, route());
+        }
+        // Synonyms route (query-param based)
+        if (req.url.startsWith(SYNONYMS_PATH)) {
+          const result = await synonymsRoute(req);
+          return sendJson(res, 200, result);
         }
       }
 

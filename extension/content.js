@@ -75,6 +75,11 @@ const STYLES = `
 #yc-overlay{position:fixed;pointer-events:auto;overflow:hidden;word-wrap:break-word;color:transparent;caret-color:transparent;border:1px solid transparent;margin:0;z-index:2147483647}
 /* Dark mode */
 @media(prefers-color-scheme:dark){#yc-toolbar,#yc-fix-card,#yc-rewrite-result{background:#1a202c;border-color:#2d3748;color:#e2e8f0}.yc-mode,.yc-action,.yc-toggle{background:#2d3748;color:#e2e8f0;border-color:#4a5568}.yc-mode:hover,.yc-action:hover{background:#4a5568}.yc-mode.active{background:#0f766e;color:#fff;border-color:#0f766e}.yc-fix-btn{background:#2d3748;color:#e2e8f0;border-color:#4a5568}.yc-fix-btn:hover{background:#4a5568}.yc-fix-text{background:#1a202c;color:#6ee7b7}.yc-rewrite-suggestion{background:#1a202c;color:#6ee7b7}.yc-link{color:#6ee7b7}}
+/* Synonym card */
+#yc-synonym-card{position:fixed;z-index:2147483647;pointer-events:auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:10px 12px;display:none;font:13px/1.5 system-ui,-apple-system,sans-serif;max-width:300px;min-width:180px;color:#1a202c;animation:ycSynIn .15s ease}
+@keyframes ycSynIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.yc-syn-word:hover{background:#0f766e!important;color:#fff!important;border-color:#0f766e!important}
+@media(prefers-color-scheme:dark){#yc-synonym-card{background:#1a202c;border-color:#2d3748;color:#e2e8f0}.yc-synonym-card button{background:#2d3748;color:#e2e8f0;border-color:#4a5568}}
 `;
 let shadowRoot = null;
 let siteEnabled = true;
@@ -651,6 +656,107 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ─── Double-click synonyms ─────────────────────────────────
+let synonymCard = null;
+
+function wordAtCursor(text, pos) {
+  let start = pos;
+  while (start > 0 && /[a-zA-Z'-]/.test(text[start - 1])) start--;
+  let end = pos;
+  while (end < text.length && /[a-zA-Z'-]/.test(text[end])) end++;
+  return { word: text.slice(start, end), start, end };
+}
+
+async function showSynonyms(word, anchorRect) {
+  hideSynonymCard();
+  ensureShadowHost();
+
+  synonymCard = document.createElement('div');
+  synonymCard.id = 'yc-synonym-card';
+  synonymCard.innerHTML = '<div style="padding:8px;color:#718096;font-size:12px">Loading synonyms…</div>';
+  const top = anchorRect.bottom + 6;
+  const left = Math.max(4, Math.min(anchorRect.left, window.innerWidth - 300));
+  synonymCard.style.top = `${top}px`;
+  synonymCard.style.left = `${left}px`;
+  synonymCard.style.display = '';
+  shadowRoot.appendChild(synonymCard);
+
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: 'getSynonyms', word });
+    if (!resp || !synonymCard) return;
+
+    let html = `<div style="font-weight:600;font-size:13px;color:#0f766e;margin-bottom:6px">\u2726 ${escHtml(word)}</div>`;
+
+    if (resp.definitions && resp.definitions.length) {
+      html += '<div style="margin-bottom:6px"><span style="font-size:10px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Definition</span>';
+      for (const d of resp.definitions.slice(0, 2)) {
+        html += `<div style="font-size:12px;color:#718096"><em style="color:#0f766e;font-style:normal">${escHtml(d.pos)}</em> ${escHtml(d.definition)}</div>`;
+      }
+      html += '</div>';
+    }
+
+    if (resp.synonyms && resp.synonyms.length) {
+      html += '<div style="margin-bottom:4px"><span style="font-size:10px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Synonyms</span><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
+      for (const s of resp.synonyms) {
+        html += `<button class="yc-syn-word" data-word="${escHtml(s)}" style="padding:3px 8px;border-radius:5px;border:1px solid #e2e8f0;background:#f7fafc;cursor:pointer;font-size:12px;color:#1a202c">${escHtml(s)}</button>`;
+      }
+      html += '</div></div>';
+    }
+
+    if (resp.antonyms && resp.antonyms.length) {
+      html += '<div><span style="font-size:10px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Antonyms</span><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
+      for (const a of resp.antonyms) {
+        html += `<button class="yc-syn-word" data-word="${escHtml(a)}" style="padding:3px 8px;border-radius:5px;border:1px dashed #cbd5e0;background:#fff;cursor:pointer;font-size:12px;color:#718096">${escHtml(a)}</button>`;
+      }
+      html += '</div></div>';
+    }
+
+    if ((!resp.synonyms || !resp.synonyms.length) && (!resp.antonyms || !resp.antonyms.length) && (!resp.definitions || !resp.definitions.length)) {
+      html += '<div style="color:#718096;font-style:italic;font-size:12px">No results found</div>';
+    }
+
+    synonymCard.innerHTML = html;
+
+    // Handle synonym clicks
+    synonymCard.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.yc-syn-word');
+      if (btn && activeField) {
+        const replacement = btn.dataset.word;
+        const txt = getFieldText();
+        const pos = activeField.selectionStart || 0;
+        const w = wordAtCursor(txt, pos);
+        if (w.word) {
+          const newText = txt.slice(0, w.start) + replacement + txt.slice(w.end);
+          setFieldText(newText);
+        }
+        hideSynonymCard();
+      }
+    });
+  } catch {
+    if (synonymCard) synonymCard.innerHTML = '<div style="color:#718096;font-size:12px">Could not load synonyms</div>';
+  }
+}
+
+function hideSynonymCard() {
+  if (synonymCard) {
+    synonymCard.remove();
+    synonymCard = null;
+  }
+}
+
+function onDoubleClick(e) {
+  if (!activeField) return;
+  const text = getFieldText();
+  if (!text) return;
+
+  const pos = activeField.selectionStart || 0;
+  const { word } = wordAtCursor(text, pos);
+  if (!word || word.length < 2) return;
+
+  const rect = e.target.getBoundingClientRect ? e.target.getBoundingClientRect() : { bottom: e.clientY + 10, left: e.clientX };
+  showSynonyms(word, rect);
+}
+
 // ─── Site-enabled check ─────────────────────────────────────────
 async function checkSiteEnabled() {
   try {
@@ -673,6 +779,9 @@ async function init() {
   document.addEventListener('blur', onFieldBlur, true);
   document.addEventListener('selectionchange', onSelectionChange);
   document.addEventListener('click', onOverlayClick);
+
+  // Double-click synonyms
+  document.addEventListener('dblclick', onDoubleClick);
 
   // Watch for dynamically added fields (SPA navigation)
   const observer = new MutationObserver(() => {});

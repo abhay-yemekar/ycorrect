@@ -18,6 +18,9 @@ import { initDocSearch } from './search.js';
 import { initExport } from './export.js';
 import { initBackup } from './backup.js';
 import { initAccessibility } from './accessibility.js';
+import { initSynonyms } from './synonyms.js';
+import { initContinuation } from './continuation.js';
+import { initSentenceRewrite } from './sentenceRewrite.js';
 import {
   initDocuments, getCurrentDoc, persistCurrent,
 } from './documents.js';
@@ -40,6 +43,9 @@ initDocSearch();
 initExport();
 initBackup();
 initAccessibility();
+initSynonyms();
+initContinuation();
+initSentenceRewrite();
 
 // ─── Load initial document ────────────────────────────────────────
 
