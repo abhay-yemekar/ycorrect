@@ -43,9 +43,10 @@ const ignoreSet = new Set();     // session-only ignore keys
 
 const STYLES = `
 /* Badge */
-#yc-badge{position:fixed;z-index:2147483647;pointer-events:auto;cursor:pointer;display:none}
-.yc-badge-dot{width:20px;height:20px;border-radius:50%;background:#0f766e;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .15s}
-.yc-badge-dot:hover{transform:scale(1.2)}
+#yc-badge{position:fixed;z-index:2147483647;pointer-events:auto!important;cursor:pointer;display:none}
+.yc-badge-dot{width:28px;height:28px;border-radius:50%;background:#0f766e;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:bold}
+.yc-badge-dot:hover{transform:scale(1.15)}
+#yc-badge .yc-badge-dot::after{content:'yC';font-size:10px;letter-spacing:-.5px}
 /* Toolbar */
 #yc-toolbar{position:fixed;z-index:2147483647;pointer-events:auto;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px;display:none;font:13px/1.5 system-ui,-apple-system,sans-serif;max-width:340px;color:#1a202c}
 .yc-toolbar-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
@@ -86,7 +87,8 @@ const STYLES = `
 .yc-other{text-decoration-color:#dc2626;background:#fef2f2}
 .yc-underline:hover{background:#fef08a!important}
 /* Overlay */
-#yc-overlay{position:fixed;pointer-events:auto;overflow:hidden;word-wrap:break-word;color:transparent;caret-color:transparent;border:1px solid transparent;margin:0;z-index:2147483647}
+#yc-overlay{position:fixed;pointer-events:none;overflow:hidden;word-wrap:break-word;color:transparent;caret-color:transparent;border:1px solid transparent;margin:0;z-index:2147483647}
+.yc-underline{pointer-events:auto!important}
 /* Dark mode */
 @media(prefers-color-scheme:dark){#yc-toolbar,#yc-fix-card,#yc-rewrite-result{background:#1a202c;border-color:#2d3748;color:#e2e8f0}.yc-mode,.yc-action,.yc-toggle{background:#2d3748;color:#e2e8f0;border-color:#4a5568}.yc-mode:hover,.yc-action:hover{background:#4a5568}.yc-mode.active{background:#0f766e;color:#fff;border-color:#0f766e}.yc-fix-btn{background:#2d3748;color:#e2e8f0;border-color:#4a5568}.yc-fix-btn:hover{background:#4a5568}.yc-fix-text{background:#1a202c;color:#6ee7b7}.yc-rewrite-suggestion{background:#1a202c;color:#6ee7b7}.yc-link{color:#6ee7b7}}
 /* Synonym card */
@@ -110,6 +112,10 @@ function ensureShadowHost() {
   const style = document.createElement('style');
   style.textContent = STYLES;
   shadowRoot.appendChild(style);
+  // Critical: shadow host has pointer-events:none, but our UI must be clickable
+  const interactionCss = document.createElement('style');
+  interactionCss.textContent = '#yc-badge,#yc-toolbar,#yc-fix-card,#yc-rewrite-chip,#yc-rewrite-result,#yc-synonym-card{pointer-events:auto!important}';
+  shadowRoot.appendChild(interactionCss);
   return host;
 }
 
@@ -152,7 +158,7 @@ function showBadge(field) {
   if (!badgeEl) {
     badgeEl = document.createElement('div');
     badgeEl.id = 'yc-badge';
-    badgeEl.innerHTML = `<div class="yc-badge-dot" title="yCorrect — click for options"></div>`;
+    badgeEl.innerHTML = `<div class="yc-badge-dot" title="yCorrect — click for options">yC</div>`;
     badgeEl.addEventListener('click', onBadgeClick);
     shadowRoot.appendChild(badgeEl);
   }
@@ -167,9 +173,9 @@ function hideBadge() {
 function positionBadge(field) {
   if (!badgeEl || !field) return;
   const r = field.getBoundingClientRect();
-  // Position at top-right of the field, inside the visible area
-  const top = Math.max(4, r.top + 2);
-  const left = Math.min(r.right - 26, window.innerWidth - 26);
+  // Position above the field at the right edge — always visible
+  const top = Math.max(4, r.top - 36);
+  const left = Math.min(r.right - 34, window.innerWidth - 34);
   badgeEl.style.top = `${top}px`;
   badgeEl.style.left = `${Math.max(4, left)}px`;
 }
