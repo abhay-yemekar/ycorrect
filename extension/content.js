@@ -593,7 +593,13 @@ function replaceSelection(_originalText, replacement) {
   }
 }
 
-// ─── Grammarly-style highlights (search text in DOM) ────────────
+// ─── Grammarly-style highlights ─────────────────────────────────
+// KEY INSIGHT: Instead of searching for text inside individual DOM nodes
+// (which fails on ProseMirror/ChatGPT where text is split across nodes),
+// we build a character map from all text nodes, reconstruct the full text,
+// find the error in the full text, then create a Range from the char map.
+// This is exactly how Grammarly does it.
+
 function createHighlightsContainer() {
   if (highlightsContainer && document.body.contains(highlightsContainer)) return;
   highlightsContainer = document.createElement('div');
@@ -611,36 +617,38 @@ function clearHighlights() {
 }
 
 /**
- * Search for exact text in the field's DOM, returning a Range.
- * Handles multiple occurrences — tracks which occurrence we need.
+ * Build a character map: for each character index in the field's full text,
+ * store the text node and offset within that node.
+ * This lets us map any text offset to a DOM Range, even when text spans
+ * multiple nodes (ProseMirror, contenteditable with formatting, etc.).
  */
-function findTextInDOM(field, searchText, occurrenceIndex) {
-  if (!searchText || searchText.length === 0) return null;
-
+function buildCharMap(field) {
+  const map = [];
   const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, null);
   let node;
-  let foundCount = 0;
-
   while ((node = walker.nextNode())) {
-    const nodeText = node.textContent;
-    let pos = 0;
-    while ((pos = nodeText.indexOf(searchText, pos)) !== -1) {
-      if (foundCount === occurrenceIndex) {
-        const range = document.createRange();
-        range.setStart(node, pos);
-        range.setEnd(node, pos + searchText.length);
-        return range;
-      }
-      foundCount++;
-      pos += 1;
+    const t = node.textContent;
+    for (let i = 0; i < t.length; i++) {
+      map.push({ node, offset: i });
     }
   }
-  return null;
+  return map;
 }
 
 /**
- * Track occurrence index for each match (handles duplicate words).
+ * Create a Range from a character map for a given text offset + length.
  */
+function rangeFromCharMap(charMap, startOffset, length) {
+  if (startOffset < 0 || startOffset + length > charMap.length) return null;
+  const start = charMap[startOffset];
+  const end = charMap[startOffset + length - 1];
+  if (!start || !end) return null;
+  const range = document.createRange();
+  range.setStart(start.node, start.offset);
+  range.setEnd(end.node, end.offset + 1);
+  return range;
+}
+
 const occurrenceCounter = new Map();
 
 function renderHighlights() {
@@ -650,20 +658,41 @@ function renderHighlights() {
   createHighlightsContainer();
   const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
 
-  // Reset occurrence counter for fresh rendering
+  // Build char map once for the whole field — this is the key to handling
+  // ProseMirror and other complex contenteditable structures.
+  const charMap = buildCharMap(activeField);
+  const fullText = charMap.map(c => c.node.textContent[c.offset]).join('');
+
   occurrenceCounter.clear();
 
   for (const match of visible) {
-    const text = getFieldText();
-    const searchText = text.slice(match.offset, match.offset + match.length);
+    const searchText = fullText.slice(match.offset, match.offset + match.length);
     if (!searchText) continue;
 
-    // Track how many times we've seen this same error text + offset combo
+    // Track duplicate occurrences
     const key = `${searchText}|${match.offset}`;
     const occurrence = occurrenceCounter.get(key) || 0;
     occurrenceCounter.set(key, occurrence + 1);
 
-    const range = findTextInDOM(activeField, searchText, occurrence);
+    // Find the Nth occurrence of this text in the full text
+    let searchStart = 0;
+    let foundOccurrence = 0;
+    let foundOffset = -1;
+    while (true) {
+      const idx = fullText.indexOf(searchText, searchStart);
+      if (idx === -1) break;
+      if (foundOccurrence === occurrence) {
+        foundOffset = idx;
+        break;
+      }
+      foundOccurrence++;
+      searchStart = idx + 1;
+    }
+
+    if (foundOffset === -1) continue;
+
+    // Use char map to create a Range that spans potentially multiple text nodes
+    const range = rangeFromCharMap(charMap, foundOffset, searchText.length);
     if (!range) continue;
 
     const rects = range.getClientRects();
