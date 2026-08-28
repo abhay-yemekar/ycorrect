@@ -6,9 +6,9 @@ this file alone: what was done, what was decided, what is next.
 
 ---
 
-## Session 2026-08-28 — Extension rewrite: fix all display bugs, Grammarly-style underlines ✅
+## Session 2026-08-28 — Extension rewrite: rebrand to WriteRight, fix all display bugs, Grammarly-style underlines ✅
 
-**Goal:** fix the critical bug where no extension UI was visible (badge, toolbar,
+**Goal:** rebrand from "yC" to "WriteRight", fix the critical bug where no extension UI was visible (badge, toolbar,
 fix cards all hidden), and rewrite the underline system to use Grammarly's
 technique (Range.getClientRects) instead of the fragile overlay approach.
 
@@ -20,6 +20,7 @@ used a different rendering path (innerHTML on the overlay).
 
 **Done:**
 
+- **Rebranded to "WriteRight"**: changed all CSS class prefixes from `yc-` to `wr-`, renamed shadow host from `ycorrect-shadow-host` to `writeright-shadow-host`, badge now shows "✓" checkmark (professional, language-agnostic like Grammarly's "G").
 - **Fixed all display bugs**: every `style.display = ''` changed to
   `style.display = 'block'` (6 instances across badge, toolbar, fix card,
   rewrite chip, rewrite result, synonym card).

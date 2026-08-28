@@ -1,5 +1,5 @@
 /**
- * yCorrect content script — in-page writing assistant.
+ * WriteRight content script — in-page writing assistant.
  *
  * Detects text fields (textarea, input, contenteditable, role="textbox"),
  * shows a floating badge on focus, runs grammar checks via the background
@@ -7,9 +7,7 @@
  * and offers click-to-fix cards and selection-based AI rewrite with mode chips.
  *
  * All UI lives inside a Shadow DOM so host-page CSS cannot clash.
- *
- * Designed to work with React/ProseMirror SPAs (ChatGPT, Notion, Gemini, etc.)
- * where native `input` events may not fire on contenteditable elements.
+ * Uses pointerdown (not click) for badge to avoid SPA event interception.
  */
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -41,201 +39,207 @@ const ignoreSet = new Set();
 // ─── Shadow DOM styles ─────────────────────────────────────────
 const STYLES = `
 /* Badge */
-#yc-badge{
-  position:fixed;z-index:2147483647;pointer-events:auto!important;
-  cursor:pointer;display:none;
-  top:10px;right:10px;
+#wr-badge{
+  position:fixed;z-index:2147483647;
+  pointer-events:auto!important;cursor:pointer;display:none;
 }
-.yc-badge-inner{
-  width:32px;height:32px;border-radius:50%;
-  background:linear-gradient(135deg,#0d9488,#0f766e);
-  border:2px solid rgba(255,255,255,0.9);
-  box-shadow:0 2px 10px rgba(0,0,0,.3);
+.wr-badge-inner{
+  width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg,#10b981,#059669);
+  border:3px solid rgba(255,255,255,0.95);
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
   display:flex;align-items:center;justify-content:center;
-  font-size:13px;color:#fff;font-weight:700;
+  font-size:20px;color:#fff;font-weight:400;
   font-family:system-ui,-apple-system,sans-serif;
   transition:transform .15s,box-shadow .15s;
-  letter-spacing:-0.5px;
+  user-select:none;
 }
-.yc-badge-inner:hover{
-  transform:scale(1.12);
-  box-shadow:0 3px 14px rgba(13,148,136,.5);
+.wr-badge-inner:hover{
+  transform:scale(1.15);
+  box-shadow:0 6px 24px rgba(16,185,129,.6);
 }
-.yc-badge-count{
-  position:absolute;top:-4px;right:-4px;
-  background:#ef4444;color:#fff;font-size:10px;font-weight:700;
-  border-radius:50%;min-width:16px;height:16px;
+.wr-badge-count{
+  position:absolute;top:-6px;right:-6px;
+  background:#ef4444;color:#fff;font-size:11px;font-weight:700;
+  border-radius:50%;min-width:18px;height:18px;
   display:flex;align-items:center;justify-content:center;
-  border:1.5px solid #fff;
+  border:2px solid #fff;
   font-family:system-ui,-apple-system,sans-serif;
+  pointer-events:none;
 }
 
 /* Toolbar */
-#yc-toolbar{
+#wr-toolbar{
   position:fixed;z-index:2147483647;pointer-events:auto;
   background:#fff;border:1px solid #e2e8f0;border-radius:12px;
   box-shadow:0 8px 30px rgba(0,0,0,.15),0 2px 8px rgba(0,0,0,.08);
-  padding:10px 12px;display:none;
+  padding:12px 14px;display:none;
   font:13px/1.5 system-ui,-apple-system,sans-serif;
-  max-width:360px;color:#1a202c;
-  animation:ycFadeIn .15s ease;
+  max-width:400px;color:#1a202c;
+  animation:wrFadeIn .15s ease;
 }
-@keyframes ycFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-.yc-toolbar-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
-.yc-toolbar-row:last-child{margin-bottom:0}
-.yc-mode{
-  padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;
+@keyframes wrFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.wr-toolbar-title{
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:#059669;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;
+  display:flex;align-items:center;gap:6px;
+}
+.wr-toolbar-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.wr-toolbar-row:last-child{margin-bottom:0}
+.wr-mode{
+  padding:6px 14px;border-radius:8px;border:1px solid #e2e8f0;
   background:#f7fafc;cursor:pointer;font-size:12px;
   transition:all .1s;color:#1a202c;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.yc-mode:hover{background:#edf2f7}
-.yc-mode.active{background:#0f766e;color:#fff;border-color:#0f766e}
-.yc-action{
-  padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;
+.wr-mode:hover{background:#edf2f7}
+.wr-mode.active{background:#059669;color:#fff;border-color:#059669}
+.wr-action{
+  padding:6px 14px;border-radius:8px;border:1px solid #e2e8f0;
   background:#fff;cursor:pointer;font-size:12px;color:#1a202c;
   transition:background .1s;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.yc-action:hover{background:#edf2f7}
-.yc-toolbar-info{
+.wr-action:hover{background:#edf2f7}
+.wr-toolbar-info{
   font-size:11px;color:#718096;justify-content:space-between;
-  align-items:center;border-top:1px solid #e2e8f0;padding-top:6px;
-  display:flex;gap:4px;
+  align-items:center;border-top:1px solid #e2e8f0;padding-top:8px;
+  display:flex;gap:6px;
 }
-.yc-issue-count{font-weight:600;color:#0f766e}
-.yc-toggle{
-  padding:3px 8px;border-radius:6px;border:1px solid #e2e8f0;
+.wr-issue-count{font-weight:600;color:#059669}
+.wr-toggle{
+  padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;
   background:#fff;cursor:pointer;font-size:11px;color:#1a202c;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.yc-link{
-  padding:3px 8px;border-radius:6px;border:none;background:none;
-  cursor:pointer;font-size:11px;color:#0f766e;text-decoration:underline;
+.wr-link{
+  padding:4px 10px;border-radius:6px;border:none;background:none;
+  cursor:pointer;font-size:11px;color:#059669;text-decoration:underline;
   font-family:system-ui,-apple-system,sans-serif;
 }
 
 /* Fix card */
-#yc-fix-card{
+#wr-fix-card{
   position:fixed;z-index:2147483647;pointer-events:auto;
   background:#fff;border:1px solid #e2e8f0;border-radius:12px;
-  box-shadow:0 8px 30px rgba(0,0,0,.15),0 2px 8px rgba(0,0,0,.08);
-  padding:12px 14px;display:none;
+  box-shadow:0 8px 30px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.08);
+  padding:14px 16px;display:none;
   font:13px/1.5 system-ui,-apple-system,sans-serif;
-  min-width:220px;max-width:340px;color:#1a202c;
-  animation:ycFadeIn .15s ease;
+  min-width:240px;max-width:360px;color:#1a202c;
+  animation:wrFadeIn .15s ease;
 }
-.yc-fix-header{
+.wr-fix-header{
   font-size:11px;text-transform:uppercase;letter-spacing:.05em;
-  color:#718096;margin-bottom:6px;font-weight:600;
+  color:#718096;margin-bottom:8px;font-weight:600;
 }
-.yc-fix-original{
-  font-size:12px;color:#94a3b8;text-decoration:line-through;margin-bottom:6px;
+.wr-fix-original{
+  font-size:13px;color:#94a3b8;text-decoration:line-through;margin-bottom:8px;
 }
-.yc-fix-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-.yc-fix-chip{
-  padding:5px 10px;border-radius:8px;border:1.5px solid #0f766e;
-  background:#f0fdfa;cursor:pointer;font-size:13px;font-weight:500;
-  color:#0f766e;transition:all .1s;
+.wr-fix-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.wr-fix-chip{
+  padding:6px 12px;border-radius:8px;border:1.5px solid #059669;
+  background:#f0fdf4;cursor:pointer;font-size:14px;font-weight:500;
+  color:#059669;transition:all .1s;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.yc-fix-chip:hover{background:#0f766e;color:#fff}
-.yc-fix-msg{font-size:12px;color:#64748b;margin-bottom:8px;line-height:1.4}
-.yc-fix-actions{display:flex;gap:6px}
-.yc-fix-btn{
-  padding:5px 14px;border-radius:8px;border:1px solid #e2e8f0;
+.wr-fix-chip:hover{background:#059669;color:#fff}
+.wr-fix-msg{font-size:12px;color:#64748b;margin-bottom:10px;line-height:1.5}
+.wr-fix-actions{display:flex;gap:8px}
+.wr-fix-btn{
+  padding:6px 16px;border-radius:8px;border:1px solid #e2e8f0;
   background:#fff;cursor:pointer;font-size:12px;color:#1a202c;
   transition:all .1s;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.yc-fix-btn:hover{background:#edf2f7}
-.yc-fix-btn.apply{background:#0f766e;color:#fff;border-color:#0f766e}
-.yc-fix-btn.apply:hover{background:#0d6b64}
+.wr-fix-btn:hover{background:#edf2f7}
+.wr-fix-btn.primary{background:#059669;color:#fff;border-color:#059669}
+.wr-fix-btn.primary:hover{background:#047857}
 
-/* Rewrite chip (appears on text selection) */
-#yc-rewrite-chip{
+/* Rewrite chip */
+#wr-rewrite-chip{
   position:fixed;z-index:2147483647;pointer-events:auto;display:none;
 }
-.yc-rewrite-btn{
-  padding:6px 14px;border-radius:10px;border:none;
-  background:linear-gradient(135deg,#0d9488,#0f766e);
-  color:#fff;font-size:13px;font-weight:600;cursor:pointer;
-  box-shadow:0 3px 12px rgba(15,118,110,.4);
+.wr-rewrite-btn{
+  padding:8px 16px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,#10b981,#059669);
+  color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+  box-shadow:0 4px 16px rgba(5,150,105,.45);
   font-family:system-ui,-apple-system,sans-serif;
   transition:transform .1s;
-  animation:ycFadeIn .12s ease;
+  animation:wrFadeIn .12s ease;
 }
-.yc-rewrite-btn:hover{transform:scale(1.04)}
+.wr-rewrite-btn:hover{transform:scale(1.05)}
 
 /* Rewrite result */
-#yc-rewrite-result{
+#wr-rewrite-result{
   position:fixed;z-index:2147483647;pointer-events:auto;
   background:#fff;border:1px solid #e2e8f0;border-radius:12px;
-  box-shadow:0 8px 30px rgba(0,0,0,.15);
-  padding:12px 14px;display:none;
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+  padding:14px 16px;display:none;
   font:13px/1.5 system-ui,-apple-system,sans-serif;
-  max-width:360px;color:#1a202c;
-  animation:ycFadeIn .15s ease;
+  max-width:380px;color:#1a202c;
+  animation:wrFadeIn .15s ease;
 }
-.yc-rewrite-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#0f766e;margin-bottom:6px}
-.yc-rewrite-suggestion{
-  font-size:14px;line-height:1.6;padding:10px 12px;
-  background:#f0fdf4;border-radius:8px;border-left:3px solid #0f766e;
-  margin-bottom:8px;white-space:pre-wrap;word-break:break-word;
+.wr-rewrite-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#059669;margin-bottom:8px}
+.wr-rewrite-suggestion{
+  font-size:14px;line-height:1.6;padding:12px 14px;
+  background:#f0fdf4;border-radius:8px;border-left:3px solid #059669;
+  margin-bottom:10px;white-space:pre-wrap;word-break:break-word;
   max-height:200px;overflow-y:auto;
 }
-.yc-rewrite-actions{display:flex;gap:6px}
+.wr-rewrite-actions{display:flex;gap:8px}
 
-/* Underline highlights (Grammarly-style: positioned absolutely on top of text) */
-.yc-highlight{
-  position:absolute;pointer-events:auto;cursor:pointer;
-  background:transparent;border-bottom:2px solid #dc2626;
+/* Underline highlights */
+.wr-highlight{
+  position:fixed;pointer-events:auto;cursor:pointer;
+  background:transparent;border-bottom:2.5px wavy #dc2626;
   border-radius:1px;transition:background .1s;
 }
-.yc-highlight:hover{background:rgba(220,38,38,.1)}
-.yc-highlight[data-issue-type="misspelling"]{border-bottom-color:#dc2626}
-.yc-highlight[data-issue-type="grammar"]{border-bottom-color:#dc2626}
-.yc-highlight[data-issue-type="clarity"]{border-bottom-color:#2563eb}
-.yc-highlight[data-issue-type="style"]{border-bottom-color:#ca8a04}
-.yc-highlight[data-issue-type="other"]{border-bottom-color:#dc2626}
+.wr-highlight:hover{background:rgba(220,38,38,.12)}
+.wr-highlight[data-issue-type="misspelling"]{border-bottom-color:#dc2626}
+.wr-highlight[data-issue-type="grammar"]{border-bottom-color:#dc2626}
+.wr-highlight[data-issue-type="clarity"]{border-bottom-color:#2563eb}
+.wr-highlight[data-issue-type="style"]{border-bottom-color:#ca8a04}
+.wr-highlight[data-issue-type="other"]{border-bottom-color:#dc2626}
 
 /* Synonym card */
-#yc-synonym-card{
+#wr-synonym-card{
   position:fixed;z-index:2147483647;pointer-events:auto;
   background:#fff;border:1px solid #e2e8f0;border-radius:12px;
-  box-shadow:0 8px 30px rgba(0,0,0,.15);
-  padding:12px 14px;display:none;
+  box-shadow:0 8px 30px rgba(0,0,0,.18);
+  padding:14px 16px;display:none;
   font:13px/1.5 system-ui,-apple-system,sans-serif;
-  max-width:300px;min-width:180px;color:#1a202c;
-  animation:ycFadeIn .15s ease;
+  max-width:320px;min-width:200px;color:#1a202c;
+  animation:wrFadeIn .15s ease;
 }
-.yc-syn-word{
-  padding:3px 8px;border-radius:6px;border:1px solid #e2e8f0;
-  background:#f7fafc;cursor:pointer;font-size:12px;color:#1a202c;
+.wr-syn-word{
+  padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;
+  background:#f7fafc;cursor:pointer;font-size:13px;color:#1a202c;
   transition:all .1s;
   font-family:system-ui,-apple-system,sans-serif;
 }
-.yc-syn-word:hover{background:#0f766e!important;color:#fff!important;border-color:#0f766e!important}
+.wr-syn-word:hover{background:#059669!important;color:#fff!important;border-color:#059669!important}
 
 /* Dark mode */
 @media(prefers-color-scheme:dark){
-  #yc-toolbar,#yc-fix-card,#yc-rewrite-result,#yc-synonym-card{
+  #wr-toolbar,#wr-fix-card,#wr-rewrite-result,#wr-synonym-card{
     background:#1e293b;border-color:#334155;color:#e2e8f0;
   }
-  .yc-mode,.yc-action,.yc-toggle{
+  .wr-mode,.wr-action,.wr-toggle{
     background:#334155;color:#e2e8f0;border-color:#475569;
   }
-  .yc-mode:hover,.yc-action:hover{background:#475569}
-  .yc-mode.active{background:#0f766e;color:#fff;border-color:#0f766e}
-  .yc-fix-btn{background:#334155;color:#e2e8f0;border-color:#475569}
-  .yc-fix-btn:hover{background:#475569}
-  .yc-fix-chip{background:#1e293b;color:#5eead4;border-color:#0f766e}
-  .yc-fix-chip:hover{background:#0f766e;color:#fff}
-  .yc-rewrite-suggestion{background:#1e293b;color:#5eead4}
-  .yc-link{color:#5eead4}
-  .yc-highlight:hover{background:rgba(220,38,38,.15)}
-  .yc-synonym-card{background:#1e293b;border-color:#334155;color:#e2e8f0}
-  .yc-syn-word{background:#334155;color:#e2e8f0;border-color:#475569}
+  .wr-mode:hover,.wr-action:hover{background:#475569}
+  .wr-mode.active{background:#059669;color:#fff;border-color:#059669}
+  .wr-fix-btn{background:#334155;color:#e2e8f0;border-color:#475569}
+  .wr-fix-btn:hover{background:#475569}
+  .wr-fix-chip{background:#1e293b;color:#34d399;border-color:#059669}
+  .wr-fix-chip:hover{background:#059669;color:#fff}
+  .wr-rewrite-suggestion{background:#1e293b;color:#34d399}
+  .wr-link{color:#34d399}
+  .wr-highlight:hover{background:rgba(220,38,38,.15)}
+  .wr-synonym-card{background:#1e293b;border-color:#334155;color:#e2e8f0}
+  .wr-syn-word{background:#334155;color:#e2e8f0;border-color:#475569}
+  .wr-toolbar-title{color:#34d399;border-bottom-color:#334155}
 }
 `;
 
@@ -247,7 +251,7 @@ let grammarEnabled = true;
 function ensureShadowHost() {
   if (shadowRoot) return shadowRoot.host;
   const host = document.createElement('div');
-  host.id = 'ycorrect-shadow-host';
+  host.id = 'writeright-shadow-host';
   host.style.cssText = 'all:initial;position:fixed;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none;overflow:visible;';
   document.documentElement.appendChild(host);
   shadowRoot = host.attachShadow({ mode: 'open' });
@@ -269,15 +273,12 @@ function escHtml(str) {
 // ─── Field detection (walks up the DOM) ─────────────────────────
 function findEditable(el) {
   if (!el || el === document.body || el === document.documentElement) return null;
-  // Skip our own UI
-  if (el.closest && el.closest('#ycorrect-shadow-host')) return null;
+  if (el.closest && el.closest('#writeright-shadow-host')) return null;
   if (el.shadowRoot) return null;
 
-  // Direct match
   if (el.matches && el.matches(FIELD_SELECTOR)) return el;
   if (el.isContentEditable) return el;
 
-  // Walk up (max 10 levels) to find an editable ancestor
   let cur = el;
   for (let i = 0; i < 10 && cur && cur !== document.body; i++) {
     if (cur.isContentEditable) return cur;
@@ -285,7 +286,6 @@ function findEditable(el) {
     cur = cur.parentElement;
   }
 
-  // Check children as last resort (for React portals)
   if (el.querySelector) {
     const child = el.querySelector(FIELD_SELECTOR);
     if (child && child.isContentEditable) return child;
@@ -299,13 +299,14 @@ function showBadge(field) {
   ensureShadowHost();
   if (!badgeEl) {
     badgeEl = document.createElement('div');
-    badgeEl.id = 'yc-badge';
-    badgeEl.innerHTML = `<div class="yc-badge-inner" title="yCorrect — click for writing tools">yC</div>`;
-    badgeEl.addEventListener('click', onBadgeClick, true);
+    badgeEl.id = 'wr-badge';
+    badgeEl.innerHTML = '<div class="wr-badge-inner" title="WriteRight — click for writing tools">✓</div>';
+    // Use pointerdown (not click) — fires before SPAs can intercept
+    badgeEl.addEventListener('pointerdown', onBadgePointerDown, true);
     shadowRoot.appendChild(badgeEl);
   }
   positionBadge(field);
-  badgeEl.style.display = 'block'; // CRITICAL: must be 'block', NOT '' which falls back to display:none
+  badgeEl.style.display = 'block';
 }
 
 function hideBadge() {
@@ -315,9 +316,9 @@ function hideBadge() {
 function positionBadge(field) {
   if (!badgeEl || !field) return;
   const r = field.getBoundingClientRect();
-  // Position at top-right corner of the field
-  const top = Math.max(6, r.top - 40);
-  const left = Math.min(r.right - 40, window.innerWidth - 44);
+  // Position at top-right corner of the field — always visible
+  const top = Math.max(6, r.top - 46);
+  const left = Math.min(r.right - 46, window.innerWidth - 50);
   badgeEl.style.top = `${top}px`;
   badgeEl.style.left = `${Math.max(6, left)}px`;
 }
@@ -325,21 +326,21 @@ function positionBadge(field) {
 function updateBadgeCount() {
   if (!badgeEl) return;
   const count = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message)).length;
-  const existing = badgeEl.querySelector('.yc-badge-count');
+  const existing = badgeEl.querySelector('.wr-badge-count');
   if (count > 0) {
     if (!existing) {
       const dot = document.createElement('div');
-      dot.className = 'yc-badge-count';
+      dot.className = 'wr-badge-count';
       badgeEl.appendChild(dot);
     }
-    badgeEl.querySelector('.yc-badge-count').textContent = count > 9 ? '9+' : String(count);
+    badgeEl.querySelector('.wr-badge-count').textContent = count > 9 ? '9+' : String(count);
   } else if (existing) {
     existing.remove();
   }
 }
 
-// ─── Badge click → toggle toolbar ───────────────────────────────
-function onBadgeClick(e) {
+// ─── Badge pointerdown → toggle toolbar ─────────────────────────
+function onBadgePointerDown(e) {
   e.stopPropagation();
   e.preventDefault();
   if (toolbarEl && toolbarEl.style.display !== 'none') {
@@ -353,24 +354,25 @@ function showToolbar() {
   ensureShadowHost();
   if (!toolbarEl) {
     toolbarEl = document.createElement('div');
-    toolbarEl.id = 'yc-toolbar';
+    toolbarEl.id = 'wr-toolbar';
     toolbarEl.innerHTML = `
-      <div class="yc-toolbar-row">
-        <button class="yc-mode active" data-mode="Humanize">✨ Humanize</button>
-        <button class="yc-mode" data-mode="Fluency">📖 Fluency</button>
-        <button class="yc-mode" data-mode="Formal">👔 Formal</button>
-        <button class="yc-mode" data-mode="Shorten">✂️ Shorten</button>
-        <button class="yc-mode" data-mode="Expand">📝 Expand</button>
-        <button class="yc-mode" data-mode="Creative">🎨 Creative</button>
+      <div class="wr-toolbar-title">✦ WriteRight</div>
+      <div class="wr-toolbar-row">
+        <button class="wr-mode active" data-mode="Humanize">✨ Humanize</button>
+        <button class="wr-mode" data-mode="Fluency">📖 Fluency</button>
+        <button class="wr-mode" data-mode="Formal">👔 Formal</button>
+        <button class="wr-mode" data-mode="Shorten">✂️ Shorten</button>
+        <button class="wr-mode" data-mode="Expand">📝 Expand</button>
+        <button class="wr-mode" data-mode="Creative">🎨 Creative</button>
       </div>
-      <div class="yc-toolbar-row">
-        <button class="yc-action" id="yc-check">✓ Check grammar</button>
-        <button class="yc-action" id="yc-rewrite">✦ Rewrite selection</button>
+      <div class="wr-toolbar-row">
+        <button class="wr-action" id="wr-check">✓ Check grammar</button>
+        <button class="wr-action" id="wr-rewrite">✦ Rewrite selection</button>
       </div>
-      <div class="yc-toolbar-row yc-toolbar-info">
-        <span class="yc-issue-count" id="yc-issue-count"></span>
-        <button class="yc-toggle" id="yc-grammar-toggle">Grammar: ON</button>
-        <button class="yc-link" id="yc-open-app">Open yCorrect</button>
+      <div class="wr-toolbar-row wr-toolbar-info">
+        <span class="wr-issue-count" id="wr-issue-count"></span>
+        <button class="wr-toggle" id="wr-grammar-toggle">Grammar: ON</button>
+        <button class="wr-link" id="wr-open-app">Open WriteRight</button>
       </div>`;
     toolbarEl.addEventListener('click', onToolbarClick, true);
     shadowRoot.appendChild(toolbarEl);
@@ -378,14 +380,19 @@ function showToolbar() {
   // Position below the badge
   if (badgeEl) {
     const br = badgeEl.getBoundingClientRect();
-    toolbarEl.style.top = `${br.bottom + 6}px`;
-    toolbarEl.style.left = `${Math.max(6, br.left - 60)}px`;
+    toolbarEl.style.top = `${br.bottom + 10}px`;
+    toolbarEl.style.left = `${Math.max(6, br.left - 80)}px`;
+    // Ensure toolbar doesn't go off-screen right
+    const toolbarRight = br.left - 80 + 400;
+    if (toolbarRight > window.innerWidth) {
+      toolbarEl.style.left = `${Math.max(6, window.innerWidth - 406)}px`;
+    }
   } else {
     toolbarEl.style.top = '60px';
-    toolbarEl.style.right = '10px';
-    toolbarEl.style.left = 'auto';
+    toolbarEl.style.left = '50%';
+    toolbarEl.style.transform = 'translateX(-50%)';
   }
-  toolbarEl.style.display = 'block'; // CRITICAL: must be 'block'
+  toolbarEl.style.display = 'block';
   updateIssueCount();
   updateGrammarToggle();
 }
@@ -395,95 +402,85 @@ function hideToolbar() {
 }
 
 function onToolbarClick(e) {
-  const modeBtn = e.target.closest('.yc-mode');
+  const modeBtn = e.target.closest('.wr-mode');
   if (modeBtn) {
-    toolbarEl.querySelectorAll('.yc-mode').forEach(b => b.classList.remove('active'));
+    toolbarEl.querySelectorAll('.wr-mode').forEach(b => b.classList.remove('active'));
     modeBtn.classList.add('active');
     return;
   }
   const action = e.target.id;
-  if (action === 'yc-check') {
+  if (action === 'wr-check') {
     runGrammarCheck(true);
     hideToolbar();
-  } else if (action === 'yc-rewrite') {
+  } else if (action === 'wr-rewrite') {
     rewriteSelection(getActiveMode());
     hideToolbar();
-  } else if (action === 'yc-grammar-toggle') {
+  } else if (action === 'wr-grammar-toggle') {
     grammarEnabled = !grammarEnabled;
     updateGrammarToggle();
     if (!grammarEnabled) clearHighlights();
-  } else if (action === 'yc-open-app') {
+  } else if (action === 'wr-open-app') {
     chrome.runtime.sendMessage({ type: 'openApp' });
   }
 }
 
 function getActiveMode() {
-  const active = toolbarEl?.querySelector('.yc-mode.active');
+  const active = toolbarEl?.querySelector('.wr-mode.active');
   return active?.dataset?.mode || 'Humanize';
 }
 
 function updateIssueCount() {
   const count = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message)).length;
-  const el = toolbarEl?.querySelector('#yc-issue-count');
+  const el = toolbarEl?.querySelector('#wr-issue-count');
   if (el) el.textContent = count > 0 ? `${count} issue${count !== 1 ? 's' : ''} found` : 'No issues found';
 }
 
 function updateGrammarToggle() {
-  const btn = toolbarEl?.querySelector('#yc-grammar-toggle');
+  const btn = toolbarEl?.querySelector('#wr-grammar-toggle');
   if (btn) btn.textContent = `Grammar: ${grammarEnabled ? 'ON' : 'OFF'}`;
 }
 
-// ─── Fix card (inline suggestion for a single match) ────────────
+// ─── Fix card ───────────────────────────────────────────────────
 function showFixCard(match, anchorRect) {
   hideFixCard();
   ensureShadowHost();
 
   const replacements = (match.replacements || []).slice(0, 4);
   fixCardEl = document.createElement('div');
-  fixCardEl.id = 'yc-fix-card';
+  fixCardEl.id = 'wr-fix-card';
 
-  let html = `<div class="yc-fix-header">${escHtml(match.rule?.category?.name || 'Writing')} · ${escHtml(match.rule?.issueType || 'issue')}</div>`;
+  let html = `<div class="wr-fix-header">${escHtml(match.rule?.category?.name || 'Writing')} · ${escHtml(match.rule?.issueType || 'issue')}</div>`;
 
-  // Show original text
-  const editor = activeField;
-  if (editor) {
-    const text = getFieldText();
-    const original = text.slice(match.offset, match.offset + match.length);
-    if (original) html += `<div class="yc-fix-original">${escHtml(original)}</div>`;
-  }
+  const text = getFieldText();
+  const original = text.slice(match.offset, match.offset + match.length);
+  if (original) html += `<div class="wr-fix-original">${escHtml(original)}</div>`;
 
-  // Show replacement chips
   if (replacements.length > 0) {
-    html += '<div class="yc-fix-chips">';
+    html += '<div class="wr-fix-chips">';
     for (const r of replacements) {
-      html += `<button class="yc-fix-chip" data-replace="${escHtml(r.value)}">${escHtml(r.value)}</button>`;
+      html += `<button class="wr-fix-chip" data-replace="${escHtml(r.value)}">${escHtml(r.value)}</button>`;
     }
     html += '</div>';
   }
 
-  // Show message
-  html += `<div class="yc-fix-msg">${escHtml(match.message || 'Improve this text')}</div>`;
-
-  // Action buttons
-  html += '<div class="yc-fix-actions">';
-  html += '<button class="yc-fix-btn" data-action="ignore">Ignore</button>';
-  html += '<button class="yc-fix-btn" data-action="humanize">✨ Humanize sentence</button>';
+  html += `<div class="wr-fix-msg">${escHtml(match.message || 'Improve this text')}</div>`;
+  html += '<div class="wr-fix-actions">';
+  html += '<button class="wr-fix-btn" data-action="ignore">Ignore</button>';
+  html += '<button class="wr-fix-btn primary" data-action="humanize">✨ Humanize sentence</button>';
   html += '</div>';
 
   fixCardEl.innerHTML = html;
 
-  // Position below the matched text
-  const top = anchorRect.bottom + 6;
-  const left = Math.max(6, Math.min(anchorRect.left, window.innerWidth - 340));
+  const top = anchorRect.bottom + 8;
+  const left = Math.max(6, Math.min(anchorRect.left, window.innerWidth - 360));
   fixCardEl.style.top = `${top}px`;
   fixCardEl.style.left = `${left}px`;
-  fixCardEl.style.display = 'block'; // CRITICAL: must be 'block'
+  fixCardEl.style.display = 'block';
 
   shadowRoot.appendChild(fixCardEl);
 
-  // Event delegation for fix card
   fixCardEl.addEventListener('click', (e) => {
-    const chip = e.target.closest('.yc-fix-chip');
+    const chip = e.target.closest('.wr-fix-chip');
     if (chip) {
       const replacement = chip.dataset.replace;
       if (replacement) replaceMatch(match, replacement);
@@ -506,13 +503,10 @@ function showFixCard(match, anchorRect) {
 }
 
 function hideFixCard() {
-  if (fixCardEl) {
-    fixCardEl.remove();
-    fixCardEl = null;
-  }
+  if (fixCardEl) { fixCardEl.remove(); fixCardEl = null; }
 }
 
-// ─── Rewrite chip (appears on text selection) ───────────────────
+// ─── Rewrite chip ──────────────────────────────────────────────
 function showRewriteChip(sel) {
   hideRewriteChip();
   if (!sel || sel.isCollapsed || !activeField) return;
@@ -521,16 +515,16 @@ function showRewriteChip(sel) {
 
   ensureShadowHost();
   rewriteChipEl = document.createElement('div');
-  rewriteChipEl.id = 'yc-rewrite-chip';
+  rewriteChipEl.id = 'wr-rewrite-chip';
   const range = sel.getRangeAt(0);
   const rect = range.getBoundingClientRect();
-  rewriteChipEl.innerHTML = `<button class="yc-rewrite-btn">✦ Rewrite</button>`;
-  rewriteChipEl.style.top = `${rect.top - 40}px`;
+  rewriteChipEl.innerHTML = '<button class="wr-rewrite-btn">✦ Rewrite</button>';
+  rewriteChipEl.style.top = `${rect.top - 44}px`;
   rewriteChipEl.style.left = `${rect.left}px`;
-  rewriteChipEl.style.display = 'block'; // CRITICAL
+  rewriteChipEl.style.display = 'block';
   shadowRoot.appendChild(rewriteChipEl);
 
-  rewriteChipEl.addEventListener('click', (e) => {
+  rewriteChipEl.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
     const mode = getActiveMode();
     rewriteSelection(mode);
@@ -539,13 +533,10 @@ function showRewriteChip(sel) {
 }
 
 function hideRewriteChip() {
-  if (rewriteChipEl) {
-    rewriteChipEl.remove();
-    rewriteChipEl = null;
-  }
+  if (rewriteChipEl) { rewriteChipEl.remove(); rewriteChipEl = null; }
 }
 
-// ─── Text replacement helpers ───────────────────────────────────
+// ─── Text helpers ──────────────────────────────────────────────
 function getFieldText() {
   if (!activeField) return '';
   if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
@@ -560,8 +551,6 @@ function setFieldText(text) {
     activeField.value = text;
     activeField.dispatchEvent(new Event('input', { bubbles: true }));
   } else if (activeField.isContentEditable) {
-    // For contenteditable, use execCommand to preserve undo history
-    // First select all, then insert
     const sel = window.getSelection();
     if (sel) {
       const range = document.createRange();
@@ -580,13 +569,12 @@ function replaceMatch(match, replacement) {
   const text = getFieldText();
   const before = text.slice(0, match.offset);
   const after = text.slice(match.offset + match.length);
-  const newText = before + replacement + after;
-  setFieldText(newText);
+  setFieldText(before + replacement + after);
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => runGrammarCheck(), 300);
 }
 
-function replaceSelection(originalText, replacement) {
+function replaceSelection(_originalText, replacement) {
   const field = activeField;
   if (!field) return;
   if (field.tagName === 'TEXTAREA' || field.tagName === 'INPUT') {
@@ -605,73 +593,56 @@ function replaceSelection(originalText, replacement) {
   }
 }
 
-// ─── Grammarly-style highlights (Range.getClientRects) ──────────
-/**
- * Instead of an overlay that mirrors text (which is fragile),
- * we use Range.getClientRects() to find the exact pixel positions
- * of each grammar error and draw thin highlight divs on top.
- * This is how Grammarly does it.
- */
-
+// ─── Grammarly-style highlights (search text in DOM) ────────────
 function createHighlightsContainer() {
   if (highlightsContainer && document.body.contains(highlightsContainer)) return;
   highlightsContainer = document.createElement('div');
-  highlightsContainer.id = 'yc-highlights';
+  highlightsContainer.id = 'wr-highlights';
   highlightsContainer.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;pointer-events:none;z-index:2147483647;overflow:visible;';
   document.body.appendChild(highlightsContainer);
 }
 
 function removeHighlightsContainer() {
-  if (highlightsContainer) {
-    highlightsContainer.remove();
-    highlightsContainer = null;
-  }
+  if (highlightsContainer) { highlightsContainer.remove(); highlightsContainer = null; }
 }
 
 function clearHighlights() {
-  if (highlightsContainer) {
-    highlightsContainer.innerHTML = '';
-  }
+  if (highlightsContainer) highlightsContainer.innerHTML = '';
 }
 
 /**
- * Find a text node and offset within the active field that corresponds
- * to a character offset in getFieldText().
+ * Search for exact text in the field's DOM, returning a Range.
+ * Handles multiple occurrences — tracks which occurrence we need.
  */
-function findTextNodeAtOffset(root, charOffset) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-  let cumulative = 0;
+function findTextInDOM(field, searchText, occurrenceIndex) {
+  if (!searchText || searchText.length === 0) return null;
+
+  const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, null);
   let node;
+  let foundCount = 0;
+
   while ((node = walker.nextNode())) {
-    const nodeLen = node.textContent.length;
-    if (cumulative + nodeLen > charOffset) {
-      return { node, offset: charOffset - cumulative };
+    const nodeText = node.textContent;
+    let pos = 0;
+    while ((pos = nodeText.indexOf(searchText, pos)) !== -1) {
+      if (foundCount === occurrenceIndex) {
+        const range = document.createRange();
+        range.setStart(node, pos);
+        range.setEnd(node, pos + searchText.length);
+        return range;
+      }
+      foundCount++;
+      pos += 1;
     }
-    cumulative += nodeLen;
   }
   return null;
 }
 
 /**
- * Create a Range for a text span [start, start+len] within the field.
+ * Track occurrence index for each match (handles duplicate words).
  */
-function createRangeForMatch(field, start, len) {
-  const text = getFieldText();
-  if (start < 0 || start + len > text.length) return null;
+const occurrenceCounter = new Map();
 
-  const startNode = findTextNodeAtOffset(field, start);
-  const endNode = findTextNodeAtOffset(field, start + len);
-  if (!startNode || !endNode) return null;
-
-  const range = document.createRange();
-  range.setStart(startNode.node, startNode.offset);
-  range.setEnd(endNode.node, endNode.offset);
-  return range;
-}
-
-/**
- * Render underline highlights for all current matches using Range.getClientRects().
- */
 function renderHighlights() {
   clearHighlights();
   if (!activeField) return;
@@ -679,8 +650,20 @@ function renderHighlights() {
   createHighlightsContainer();
   const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
 
+  // Reset occurrence counter for fresh rendering
+  occurrenceCounter.clear();
+
   for (const match of visible) {
-    const range = createRangeForMatch(activeField, match.offset, match.length);
+    const text = getFieldText();
+    const searchText = text.slice(match.offset, match.offset + match.length);
+    if (!searchText) continue;
+
+    // Track how many times we've seen this same error text + offset combo
+    const key = `${searchText}|${match.offset}`;
+    const occurrence = occurrenceCounter.get(key) || 0;
+    occurrenceCounter.set(key, occurrence + 1);
+
+    const range = findTextInDOM(activeField, searchText, occurrence);
     if (!range) continue;
 
     const rects = range.getClientRects();
@@ -689,16 +672,15 @@ function renderHighlights() {
     const issueType = match.rule?.issueType || 'other';
 
     for (const rect of rects) {
-      // Skip very thin rects (empty lines etc)
       if (rect.width < 2) continue;
 
       const hl = document.createElement('div');
-      hl.className = 'yc-highlight';
+      hl.className = 'wr-highlight';
       hl.dataset.issueType = issueType;
       hl.dataset.matchOffset = String(match.offset);
-      hl.style.position = 'fixed'; // fixed = relative to viewport, simpler than absolute
+      hl.style.position = 'fixed';
       hl.style.left = `${rect.left}px`;
-      hl.style.top = `${rect.top + rect.height - 3}px`; // bottom of the text line
+      hl.style.top = `${rect.top + rect.height - 4}px`;
       hl.style.width = `${rect.width}px`;
       hl.style.height = '3px';
       hl.style.pointerEvents = 'auto';
@@ -710,7 +692,7 @@ function renderHighlights() {
 }
 
 function onHighlightClick(e) {
-  const hl = e.target.closest('.yc-highlight');
+  const hl = e.target.closest('.wr-highlight');
   if (!hl) { hideFixCard(); return; }
   const offset = parseInt(hl.dataset.matchOffset, 10);
   const match = currentMatches.find(m => m.offset === offset);
@@ -751,20 +733,17 @@ function scheduleGrammarCheck() {
   }, DEBOUNCE_MS);
 }
 
-// ─── AI rewrite (selection or sentence) ─────────────────────────
+// ─── AI rewrite ────────────────────────────────────────────────
 async function rewriteSelection(mode) {
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) return;
   const selectedText = sel.toString().trim();
   if (!selectedText || selectedText.length < 3) return;
-
   hideRewriteChip();
 
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'rewrite', text: selectedText, mode });
-    if (resp && resp.suggestion) {
-      showRewriteResult(selectedText, resp.suggestion, mode);
-    }
+    if (resp && resp.suggestion) showRewriteResult(selectedText, resp.suggestion, mode);
   } catch { /* Server unreachable */ }
 }
 
@@ -783,62 +762,56 @@ async function rewriteWithSentence(sentence, mode, sentStart, sentEnd) {
     const resp = await chrome.runtime.sendMessage({ type: 'rewrite', text: sentence, mode });
     if (resp && resp.suggestion) {
       const text = getFieldText();
-      const newText = text.slice(0, sentStart) + resp.suggestion + text.slice(sentEnd);
-      setFieldText(newText);
+      setFieldText(text.slice(0, sentStart) + resp.suggestion + text.slice(sentEnd));
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => runGrammarCheck(), 300);
     }
   } catch { /* Server unreachable */ }
 }
 
-function showRewriteResult(original, suggestion, mode) {
+function showRewriteResult(_original, suggestion, mode) {
   ensureShadowHost();
   const card = document.createElement('div');
-  card.id = 'yc-rewrite-result';
+  card.id = 'wr-rewrite-result';
   card.innerHTML = `
-    <div class="yc-rewrite-header">✦ ${escHtml(mode)} rewrite</div>
-    <div class="yc-rewrite-suggestion">${escHtml(suggestion)}</div>
-    <div class="yc-rewrite-actions">
-      <button class="yc-fix-btn apply" data-action="replace">Replace</button>
-      <button class="yc-fix-btn" data-action="copy">Copy</button>
-      <button class="yc-fix-btn" data-action="dismiss">Dismiss</button>
+    <div class="wr-rewrite-header">✦ ${escHtml(mode)} rewrite</div>
+    <div class="wr-rewrite-suggestion">${escHtml(suggestion)}</div>
+    <div class="wr-rewrite-actions">
+      <button class="wr-fix-btn primary" data-action="replace">Replace</button>
+      <button class="wr-fix-btn" data-action="copy">Copy</button>
+      <button class="wr-fix-btn" data-action="dismiss">Dismiss</button>
     </div>`;
 
-  // Position near badge or center of screen
   if (badgeEl) {
     const br = badgeEl.getBoundingClientRect();
-    card.style.top = `${br.bottom + 6}px`;
+    card.style.top = `${br.bottom + 10}px`;
     card.style.left = `${Math.max(6, br.left - 100)}px`;
   } else {
     card.style.top = '80px';
     card.style.left = '50%';
     card.style.transform = 'translateX(-50%)';
   }
-  card.style.display = 'block'; // CRITICAL
+  card.style.display = 'block';
   shadowRoot.appendChild(card);
 
   card.addEventListener('click', async (e) => {
     const action = e.target.dataset?.action;
     if (action === 'replace') {
       const sel = window.getSelection();
-      if (sel && !sel.isCollapsed) {
-        replaceSelection(sel.toString(), suggestion);
-      }
+      if (sel && !sel.isCollapsed) replaceSelection(sel.toString(), suggestion);
       card.remove();
     } else if (action === 'copy') {
       try {
         await navigator.clipboard.writeText(suggestion);
         e.target.textContent = '✓ Copied';
-      } catch {
-        e.target.textContent = 'Copy failed';
-      }
+      } catch { e.target.textContent = 'Copy failed'; }
     } else if (action === 'dismiss') {
       card.remove();
     }
   }, true);
 }
 
-// ─── Synonym card ───────────────────────────────────────────────
+// ─── Synonyms ──────────────────────────────────────────────────
 let synonymCard = null;
 
 function wordAtCursor(text, pos) {
@@ -854,86 +827,73 @@ async function showSynonyms(word, anchorRect) {
   ensureShadowHost();
 
   synonymCard = document.createElement('div');
-  synonymCard.id = 'yc-synonym-card';
-  synonymCard.innerHTML = '<div style="padding:8px;color:#718096;font-size:12px">Loading synonyms…</div>';
-  const top = anchorRect.bottom + 6;
-  const left = Math.max(6, Math.min(anchorRect.left, window.innerWidth - 300));
+  synonymCard.id = 'wr-synonym-card';
+  synonymCard.innerHTML = '<div style="padding:10px;color:#718096;font-size:13px">Loading synonyms…</div>';
+  const top = anchorRect.bottom + 8;
+  const left = Math.max(6, Math.min(anchorRect.left, window.innerWidth - 320));
   synonymCard.style.top = `${top}px`;
   synonymCard.style.left = `${left}px`;
-  synonymCard.style.display = 'block'; // CRITICAL
+  synonymCard.style.display = 'block';
   shadowRoot.appendChild(synonymCard);
 
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'getSynonyms', word });
     if (!resp || !synonymCard) return;
 
-    let html = `<div style="font-weight:600;font-size:13px;color:#0f766e;margin-bottom:6px">✦ ${escHtml(word)}</div>`;
+    let html = `<div style="font-weight:600;font-size:14px;color:#059669;margin-bottom:8px">✦ ${escHtml(word)}</div>`;
 
     if (resp.definitions && resp.definitions.length) {
-      html += '<div style="margin-bottom:6px"><span style="font-size:10px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Definition</span>';
+      html += '<div style="margin-bottom:8px"><span style="font-size:11px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Definition</span>';
       for (const d of resp.definitions.slice(0, 2)) {
-        html += `<div style="font-size:12px;color:#718096"><em style="color:#0f766e;font-style:normal">${escHtml(d.pos)}</em> ${escHtml(d.definition)}</div>`;
+        html += `<div style="font-size:13px;color:#718096"><em style="color:#059669;font-style:normal">${escHtml(d.pos)}</em> ${escHtml(d.definition)}</div>`;
       }
       html += '</div>';
     }
 
     if (resp.synonyms && resp.synonyms.length) {
-      html += '<div style="margin-bottom:4px"><span style="font-size:10px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Synonyms</span><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
-      for (const s of resp.synonyms) {
-        html += `<button class="yc-syn-word" data-word="${escHtml(s)}">${escHtml(s)}</button>`;
-      }
+      html += '<div style="margin-bottom:6px"><span style="font-size:11px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Synonyms</span><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">';
+      for (const s of resp.synonyms) html += `<button class="wr-syn-word" data-word="${escHtml(s)}">${escHtml(s)}</button>`;
       html += '</div></div>';
     }
 
     if (resp.antonyms && resp.antonyms.length) {
-      html += '<div><span style="font-size:10px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Antonyms</span><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
-      for (const a of resp.antonyms) {
-        html += `<button class="yc-syn-word" data-word="${escHtml(a)}" style="border-style:dashed;color:#718096">${escHtml(a)}</button>`;
-      }
+      html += '<div><span style="font-size:11px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Antonyms</span><div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">';
+      for (const a of resp.antonyms) html += `<button class="wr-syn-word" data-word="${escHtml(a)}" style="border-style:dashed;color:#718096">${escHtml(a)}</button>`;
       html += '</div></div>';
     }
 
     if ((!resp.synonyms || !resp.synonyms.length) && (!resp.antonyms || !resp.antonyms.length) && (!resp.definitions || !resp.definitions.length)) {
-      html += '<div style="color:#718096;font-style:italic;font-size:12px">No results found</div>';
+      html += '<div style="color:#718096;font-style:italic;font-size:13px">No results found</div>';
     }
 
     synonymCard.innerHTML = html;
-
     synonymCard.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('.yc-syn-word');
+      const btn = ev.target.closest('.wr-syn-word');
       if (btn && activeField) {
         const replacement = btn.dataset.word;
         const txt = getFieldText();
         const pos = activeField.selectionStart || 0;
         const w = wordAtCursor(txt, pos);
-        if (w.word) {
-          const newText = txt.slice(0, w.start) + replacement + txt.slice(w.end);
-          setFieldText(newText);
-        }
+        if (w.word) setFieldText(txt.slice(0, w.start) + replacement + txt.slice(w.end));
         hideSynonymCard();
       }
     }, true);
   } catch {
-    if (synonymCard) synonymCard.innerHTML = '<div style="color:#718096;font-size:12px">Could not load synonyms</div>';
+    if (synonymCard) synonymCard.innerHTML = '<div style="color:#718096;font-size:13px">Could not load synonyms</div>';
   }
 }
 
 function hideSynonymCard() {
-  if (synonymCard) {
-    synonymCard.remove();
-    synonymCard = null;
-  }
+  if (synonymCard) { synonymCard.remove(); synonymCard = null; }
 }
 
 function onDoubleClick(e) {
   if (!activeField) return;
   const text = getFieldText();
   if (!text) return;
-
   const pos = activeField.selectionStart || 0;
   const { word } = wordAtCursor(text, pos);
   if (!word || word.length < 2) return;
-
   const rect = e.target.getBoundingClientRect ? e.target.getBoundingClientRect() : { bottom: e.clientY + 10, left: e.clientX };
   showSynonyms(word, rect);
 }
@@ -971,7 +931,7 @@ function onFieldFocus(e) {
 
 function onFieldBlur(e) {
   const related = e.relatedTarget;
-  if (related && related.closest && related.closest('#ycorrect-shadow-host')) return;
+  if (related && related.closest && related.closest('#writeright-shadow-host')) return;
   setTimeout(() => {
     if (activeField && !activeField.contains(document.activeElement) &&
         document.activeElement !== activeField &&
@@ -995,7 +955,7 @@ function onDocInput() {
   scheduleGrammarCheck();
 }
 
-// ─── Periodic polling ───────────────────────────────────────────
+// ─── Polling ────────────────────────────────────────────────────
 function startPolling() {
   stopPolling();
   lastPollText = getFieldText();
@@ -1006,18 +966,12 @@ function startPolling() {
       lastPollText = newText;
       scheduleGrammarCheck();
     }
-    // Re-sync highlights position (fields may resize/scroll)
-    if (grammarEnabled && currentMatches.length > 0) {
-      renderHighlights();
-    }
+    if (grammarEnabled && currentMatches.length > 0) renderHighlights();
   }, POLL_INTERVAL_MS);
 }
 
 function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
 // ─── Selection change ───────────────────────────────────────────
@@ -1031,15 +985,13 @@ function onSelectionChange() {
   }
 }
 
-// ─── MutationObserver (SPA navigation) ──────────────────────────
+// ─── MutationObserver ───────────────────────────────────────────
 let bodyObserver = null;
 
 function setupObserver() {
   if (bodyObserver) return;
   bodyObserver = new MutationObserver(() => {
-    if (activeField && !document.body.contains(activeField)) {
-      deactivateField();
-    }
+    if (activeField && !document.body.contains(activeField)) deactivateField();
     if (!activeField && document.activeElement) {
       const editable = findEditable(document.activeElement);
       if (editable) activateField(editable);
@@ -1052,12 +1004,9 @@ function setupObserver() {
 async function checkSiteEnabled() {
   try {
     const data = await chrome.storage.sync.get({ disabledSites: [], grammarEnabled: true });
-    const host = location.hostname;
-    siteEnabled = !data.disabledSites.includes(host);
+    siteEnabled = !data.disabledSites.includes(location.hostname);
     grammarEnabled = data.grammarEnabled !== false;
-  } catch {
-    siteEnabled = true;
-  }
+  } catch { siteEnabled = true; }
 }
 
 // ─── Init ───────────────────────────────────────────────────────
@@ -1065,28 +1014,16 @@ async function init() {
   await checkSiteEnabled();
   if (!siteEnabled) return;
 
-  // Capture-phase focusin catches events before React/ProseMirror handlers
   document.addEventListener('focusin', onFieldFocus, true);
   document.addEventListener('blur', onFieldBlur, true);
-
-  // Document-level input detection (critical for ProseMirror/React)
   document.addEventListener('input', onDocInput, true);
   document.addEventListener('keydown', onDocKeyActivity, true);
   document.addEventListener('keyup', onDocKeyActivity, true);
-
-  // Selection change (Rewrite chip)
   document.addEventListener('selectionchange', onSelectionChange);
-
-  // Highlight click (underline → fix card)
   document.addEventListener('click', onHighlightClick);
-
-  // Double-click synonyms
   document.addEventListener('dblclick', onDoubleClick);
-
-  // Watch for SPA DOM changes
   setupObserver();
 
-  // Detect current focus on init
   if (document.activeElement) {
     const editable = findEditable(document.activeElement);
     if (editable) activateField(editable);
