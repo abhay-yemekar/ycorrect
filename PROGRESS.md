@@ -6,6 +6,56 @@ this file alone: what was done, what was decided, what is next.
 
 ---
 
+## Session 2026-08-28 — Extension rewrite: fix all display bugs, Grammarly-style underlines ✅
+
+**Goal:** fix the critical bug where no extension UI was visible (badge, toolbar,
+fix cards all hidden), and rewrite the underline system to use Grammarly's
+technique (Range.getClientRects) instead of the fragile overlay approach.
+
+**Root cause found:** Every `show*()` function set `style.display = ''` which
+removes the inline style, falling back to the CSS rule `display:none`. The
+badge, toolbar, fix cards, rewrite chip, rewrite result, and synonym card were
+ALL created but immediately hidden. The grammar underlines worked because they
+used a different rendering path (innerHTML on the overlay).
+
+**Done:**
+
+- **Fixed all display bugs**: every `style.display = ''` changed to
+  `style.display = 'block'` (6 instances across badge, toolbar, fix card,
+  rewrite chip, rewrite result, synonym card).
+- **Rewrote underline system** to use Grammarly's `Range.getClientRects()`
+  technique: instead of mirroring all text in an overlay div, we now create
+  thin highlight `<div>` elements positioned at the exact pixel coordinates
+  of each grammar error using `Range.getClientRects()`. This is pixel-perfect
+  and works on any contenteditable (ChatGPT, Gemini, Notion, etc.).
+- **Added red error count badge** on the yC dot (shows number of issues,
+  like Grammarly's badge).
+- **Multiple replacement chips**: fix card now shows up to 4 clickable
+  replacement suggestions (not just the first one).
+- **Improved UI styling**: gradient badge, smooth animations (ycFadeIn),
+  better dark mode support, cleaner typography.
+- **ESLint config** updated: added `NodeFilter` and `TreeWalker` globals
+  for the content script.
+
+**Verification:** `npm run lint` clean · `npm test` 120/120 pass.
+
+**What needs testing now (real browser):**
+1. Reload extension at chrome://extensions
+2. ChatGPT: click into input → type "What is teh puspose" → green badge
+   should appear above the input with error count → click badge → toolbar
+   with mode chips → grammar underlines should show → click underline →
+   fix card with replacement chips.
+3. Gemini: same test.
+4. Gmail compose, Notion, Google Docs: verify badge appears on any text field.
+
+**Still open for next sessions:**
+- E3: Extension UX polish — keyboard shortcuts, better positioning,
+  loading states, error feedback when server is offline.
+- E4: Extension settings page with full config.
+- E5: Web Store packaging.
+
+---
+
 ## Session 2026-08-27 — Flagship features: synonyms, continuation, sentence rewrite ✅
 
 **Goal:** close the remaining Grammarly/QuillBot gaps — double-click synonyms,

@@ -97,7 +97,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'script',
-      globals: { ...extensionGlobals, ...browserGlobals, InputEvent: 'readonly' },
+      globals: { ...extensionGlobals, ...browserGlobals, InputEvent: 'readonly', NodeFilter: 'readonly', TreeWalker: 'readonly' },
     },
   },
   {
