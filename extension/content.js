@@ -35,6 +35,8 @@ let pollTimer = null;
 let lastPollText = '';
 let currentMatches = [];
 const ignoreSet = new Set();
+let grammarSpinnerEl = null;
+let toastTimer = null;
 
 // ─── Shadow DOM styles ─────────────────────────────────────────
 const STYLES = `
@@ -220,6 +222,32 @@ const STYLES = `
 }
 .wr-syn-word:hover{background:#059669!important;color:#fff!important;border-color:#059669!important}
 
+
+/* Loading spinner */
+.wr-spinner{
+  position:fixed;z-index:2147483647;pointer-events:none;
+  top:6px;right:6px;width:20px;height:20px;
+  border:2.5px solid rgba(5,150,105,.25);border-top-color:#059669;
+  border-radius:50%;animation:wrSpin .7s linear infinite;
+}
+@keyframes wrSpin{to{transform:rotate(360deg)}}
+
+/* Error toast */
+.wr-toast{
+  position:fixed;z-index:2147483647;pointer-events:auto;
+  bottom:20px;right:20px;
+  background:#1e293b;color:#f8fafc;border-radius:10px;
+  padding:12px 20px;font:13px/1.5 system-ui,-apple-system,sans-serif;
+  box-shadow:0 8px 30px rgba(0,0,0,.3);
+  display:flex;align-items:center;gap:10px;
+  animation:wrToastIn .2s ease;
+  max-width:360px;
+}
+.wr-toast-error{border-left:4px solid #ef4444}
+.wr-toast-success{border-left:4px solid #10b981}
+.wr-toast-dismiss{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;padding:0 4px;line-height:1}
+.wr-toast-dismiss:hover{color:#fff}
+@keyframes wrToastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 /* Dark mode */
 @media(prefers-color-scheme:dark){
   #wr-toolbar,#wr-fix-card,#wr-rewrite-result,#wr-synonym-card{
@@ -828,6 +856,7 @@ function onHighlightClick(e) {
 
 // ─── Grammar check ──────────────────────────────────────────────
 async function runGrammarCheck() {
+  showSpinner();
   const text = getFieldText();
   if (!text || text.trim().length < 3) {
     currentMatches = [];
@@ -847,7 +876,9 @@ async function runGrammarCheck() {
       updateBadgeCount();
     }
   } catch {
-    // Server unreachable
+    showToast("Could not reach WriteRight server. Make sure npm start is running.", "error");
+  } finally {
+    hideSpinner();
   }
 }
 
@@ -1140,6 +1171,16 @@ function onResize() {
 }
 
 // ─── Init ───────────────────────────────────────────────────────
+// --- Keyboard shortcuts ---
+function onKeyDown(e) {
+  if (e.key === "Escape") {
+    hideToolbar();
+    hideFixCard();
+    hideRewriteChip();
+    hideSynonymCard();
+  }
+}
+
 async function init() {
   await checkSiteEnabled();
   if (!siteEnabled) return;
@@ -1151,6 +1192,7 @@ async function init() {
   document.addEventListener('keyup', onDocKeyActivity, true);
   document.addEventListener('selectionchange', onSelectionChange);
   document.addEventListener('click', onHighlightClick);
+  document.addEventListener('keydown', onKeyDown, true);
   document.addEventListener('dblclick', onDoubleClick);
   window.addEventListener('resize', onResize);
   setupObserver();
@@ -1161,4 +1203,32 @@ async function init() {
   }
 }
 
-init();
+init();// --- Loading spinner ---
+function showSpinner() {
+  ensureShadowHost();
+  if (!grammarSpinnerEl) {
+    grammarSpinnerEl = document.createElement("div");
+    grammarSpinnerEl.className = "wr-spinner";
+    shadowRoot.appendChild(grammarSpinnerEl);
+  }
+  grammarSpinnerEl.style.display = "block";
+}
+function hideSpinner() {
+  if (grammarSpinnerEl) grammarSpinnerEl.style.display = "none";
+}
+
+// --- Error toast ---
+function showToast(msg, type) {
+  ensureShadowHost();
+  const existing = shadowRoot.querySelector(".wr-toast");
+  if (existing) existing.remove();
+  clearTimeout(toastTimer);
+  const toast = document.createElement("div");
+  toast.className = "wr-toast wr-toast-" + (type || "error");
+  toast.innerHTML = "<span>" + msg + "</span>" + '<button class="wr-toast-dismiss">×</button>';
+  shadowRoot.appendChild(toast);
+  toast.querySelector(".wr-toast-dismiss").addEventListener("click", () => toast.remove());
+  toastTimer = setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+}
+
+
