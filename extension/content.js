@@ -3,8 +3,8 @@
  *
  * Detects text fields (textarea, input, contenteditable, role="textbox"),
  * shows a floating badge on focus, runs grammar checks via the background
- * worker, renders underline highlights using Grammarly-style Range.getClientRects(),
- * and offers click-to-fix cards and selection-based AI rewrite with mode chips.
+ * worker, renders underline highlights, and offers click-to-fix cards
+ * and selection-based AI rewrite with mode chips.
  *
  * All UI lives inside a Shadow DOM so host-page CSS cannot clash.
  * Uses pointerdown (not click) for badge to avoid SPA event interception.
@@ -300,8 +300,7 @@ function showBadge(field) {
   if (!badgeEl) {
     badgeEl = document.createElement('div');
     badgeEl.id = 'wr-badge';
-    badgeEl.innerHTML = '<div class="wr-badge-inner" title="WriteRight — click for writing tools">✓</div>';
-    // Use pointerdown (not click) — fires before SPAs can intercept
+    badgeEl.innerHTML = '<div class="wr-badge-inner" title="WriteRight \u2014 click for writing tools">\u2713</div>';
     badgeEl.addEventListener('pointerdown', onBadgePointerDown, true);
     shadowRoot.appendChild(badgeEl);
   }
@@ -316,7 +315,6 @@ function hideBadge() {
 function positionBadge(field) {
   if (!badgeEl || !field) return;
   const r = field.getBoundingClientRect();
-  // Position at top-right corner of the field — always visible
   const top = Math.max(6, r.top - 46);
   const left = Math.min(r.right - 46, window.innerWidth - 50);
   badgeEl.style.top = `${top}px`;
@@ -339,7 +337,7 @@ function updateBadgeCount() {
   }
 }
 
-// ─── Badge pointerdown → toggle toolbar ─────────────────────────
+// ─── Badge pointerdown -> toggle toolbar ────────────────────────
 function onBadgePointerDown(e) {
   e.stopPropagation();
   e.preventDefault();
@@ -356,18 +354,18 @@ function showToolbar() {
     toolbarEl = document.createElement('div');
     toolbarEl.id = 'wr-toolbar';
     toolbarEl.innerHTML = `
-      <div class="wr-toolbar-title">✦ WriteRight</div>
+      <div class="wr-toolbar-title">\u2726 WriteRight</div>
       <div class="wr-toolbar-row">
-        <button class="wr-mode active" data-mode="Humanize">✨ Humanize</button>
-        <button class="wr-mode" data-mode="Fluency">📖 Fluency</button>
-        <button class="wr-mode" data-mode="Formal">👔 Formal</button>
-        <button class="wr-mode" data-mode="Shorten">✂️ Shorten</button>
-        <button class="wr-mode" data-mode="Expand">📝 Expand</button>
-        <button class="wr-mode" data-mode="Creative">🎨 Creative</button>
+        <button class="wr-mode active" data-mode="Humanize">\u2728 Humanize</button>
+        <button class="wr-mode" data-mode="Fluency">\uD83D\uDCD6 Fluency</button>
+        <button class="wr-mode" data-mode="Formal">\uD83D\uDC54 Formal</button>
+        <button class="wr-mode" data-mode="Shorten">\u2702\uFE0F Shorten</button>
+        <button class="wr-mode" data-mode="Expand">\uD83D\uDCDD Expand</button>
+        <button class="wr-mode" data-mode="Creative">\uD83C\uDFA8 Creative</button>
       </div>
       <div class="wr-toolbar-row">
-        <button class="wr-action" id="wr-check">✓ Check grammar</button>
-        <button class="wr-action" id="wr-rewrite">✦ Rewrite selection</button>
+        <button class="wr-action" id="wr-check">\u2713 Check grammar</button>
+        <button class="wr-action" id="wr-rewrite">\u2726 Rewrite selection</button>
       </div>
       <div class="wr-toolbar-row wr-toolbar-info">
         <span class="wr-issue-count" id="wr-issue-count"></span>
@@ -377,12 +375,10 @@ function showToolbar() {
     toolbarEl.addEventListener('click', onToolbarClick, true);
     shadowRoot.appendChild(toolbarEl);
   }
-  // Position below the badge
   if (badgeEl) {
     const br = badgeEl.getBoundingClientRect();
     toolbarEl.style.top = `${br.bottom + 10}px`;
     toolbarEl.style.left = `${Math.max(6, br.left - 80)}px`;
-    // Ensure toolbar doesn't go off-screen right
     const toolbarRight = br.left - 80 + 400;
     if (toolbarRight > window.innerWidth) {
       toolbarEl.style.left = `${Math.max(6, window.innerWidth - 406)}px`;
@@ -449,7 +445,7 @@ function showFixCard(match, anchorRect) {
   fixCardEl = document.createElement('div');
   fixCardEl.id = 'wr-fix-card';
 
-  let html = `<div class="wr-fix-header">${escHtml(match.rule?.category?.name || 'Writing')} · ${escHtml(match.rule?.issueType || 'issue')}</div>`;
+  let html = `<div class="wr-fix-header">${escHtml(match.rule?.category?.name || 'Writing')} \u00b7 ${escHtml(match.rule?.issueType || 'issue')}</div>`;
 
   const text = getFieldText();
   const original = text.slice(match.offset, match.offset + match.length);
@@ -466,7 +462,7 @@ function showFixCard(match, anchorRect) {
   html += `<div class="wr-fix-msg">${escHtml(match.message || 'Improve this text')}</div>`;
   html += '<div class="wr-fix-actions">';
   html += '<button class="wr-fix-btn" data-action="ignore">Ignore</button>';
-  html += '<button class="wr-fix-btn primary" data-action="humanize">✨ Humanize sentence</button>';
+  html += '<button class="wr-fix-btn primary" data-action="humanize">\u2728 Humanize sentence</button>';
   html += '</div>';
 
   fixCardEl.innerHTML = html;
@@ -518,7 +514,7 @@ function showRewriteChip(sel) {
   rewriteChipEl.id = 'wr-rewrite-chip';
   const range = sel.getRangeAt(0);
   const rect = range.getBoundingClientRect();
-  rewriteChipEl.innerHTML = '<button class="wr-rewrite-btn">✦ Rewrite</button>';
+  rewriteChipEl.innerHTML = '<button class="wr-rewrite-btn">\u2726 Rewrite</button>';
   rewriteChipEl.style.top = `${rect.top - 44}px`;
   rewriteChipEl.style.left = `${rect.left}px`;
   rewriteChipEl.style.display = 'block';
@@ -593,12 +589,10 @@ function replaceSelection(_originalText, replacement) {
   }
 }
 
-// ─── Grammarly-style highlights ─────────────────────────────────
-// KEY INSIGHT: Instead of searching for text inside individual DOM nodes
-// (which fails on ProseMirror/ChatGPT where text is split across nodes),
-// we build a character map from all text nodes, reconstruct the full text,
-// find the error in the full text, then create a Range from the char map.
-// This is exactly how Grammarly does it.
+// ─── Underline highlights (text-search approach) ────────────────
+// Instead of using offset-based char maps (which break when innerText
+// and text nodes disagree on newlines), we search for the error text
+// directly in DOM text nodes. This is more robust on ProseMirror.
 
 function createHighlightsContainer() {
   if (highlightsContainer && document.body.contains(highlightsContainer)) return;
@@ -617,82 +611,125 @@ function clearHighlights() {
 }
 
 /**
- * Build a character map: for each character index in the field's full text,
- * store the text node and offset within that node.
- * This lets us map any text offset to a DOM Range, even when text spans
- * multiple nodes (ProseMirror, contenteditable with formatting, etc.).
+ * Collect all text nodes in a field, returning them with their cumulative
+ * character positions. We also track block-level gaps (newlines) that
+ * innerText would include but text nodes don't.
  */
-function buildCharMap(field) {
-  const map = [];
+function collectTextNodes(field) {
+  const nodes = [];
   const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, null);
   let node;
   while ((node = walker.nextNode())) {
-    const t = node.textContent;
-    for (let i = 0; i < t.length; i++) {
-      map.push({ node, offset: i });
+    const text = node.textContent;
+    if (text.length > 0) {
+      nodes.push({ node, text, length: text.length });
     }
   }
-  return map;
+  return nodes;
 }
 
 /**
- * Create a Range from a character map for a given text offset + length.
+ * Build a "innerText-like" string from text nodes + block gaps,
+ * and a map from each character in that string to its DOM position.
+ *
+ * We detect block gaps by checking if consecutive text nodes are in
+ * different block elements (p, div, li, etc.).
  */
-function rangeFromCharMap(charMap, startOffset, length) {
-  if (startOffset < 0 || startOffset + length > charMap.length) return null;
-  const start = charMap[startOffset];
-  const end = charMap[startOffset + length - 1];
-  if (!start || !end) return null;
-  const range = document.createRange();
-  range.setStart(start.node, start.offset);
-  range.setEnd(end.node, end.offset + 1);
-  return range;
+function buildAlignedTextMap(field) {
+  const nodes = collectTextNodes(field);
+  if (nodes.length === 0) return { text: '', charMap: [] };
+
+  const charMap = [];
+  let text = '';
+
+  for (let i = 0; i < nodes.length; i++) {
+    const { node, length } = nodes[i];
+
+    // Add a newline gap if this node is in a different block than the previous
+    if (i > 0) {
+      const prevParent = getBlockParent(nodes[i - 1].node);
+      const curParent = getBlockParent(node);
+      if (prevParent !== curParent) {
+        text += '\n';
+        charMap.push({ node, offset: 0, isGap: true });
+      }
+    }
+
+    for (let j = 0; j < length; j++) {
+      text += node.textContent[j];
+      charMap.push({ node, offset: j });
+    }
+  }
+
+  return { text, charMap };
 }
 
-const occurrenceCounter = new Map();
+/**
+ * Get the nearest block-level ancestor (p, div, li, h1-h6, td, etc.)
+ */
+function getBlockParent(node) {
+  let cur = node.parentElement;
+  while (cur && cur !== activeField) {
+    const tag = cur.tagName;
+    if (tag === 'P' || tag === 'DIV' || tag === 'LI' || tag === 'H1' ||
+        tag === 'H2' || tag === 'H3' || tag === 'H4' || tag === 'H5' ||
+        tag === 'H6' || tag === 'TD' || tag === 'TH' || tag === 'BLOCKQUOTE') {
+      return cur;
+    }
+    cur = cur.parentElement;
+  }
+  return activeField;
+}
+
+/**
+ * Create a Range from charMap positions.
+ */
+function rangeFromCharMap(charMap, startIdx, length) {
+  if (startIdx < 0 || startIdx + length > charMap.length) return null;
+
+  // Find first non-gap char
+  let startEntry = null;
+  for (let i = startIdx; i < startIdx + length; i++) {
+    if (!charMap[i].isGap) { startEntry = charMap[i]; break; }
+  }
+  // Find last non-gap char
+  let endEntry = null;
+  for (let i = startIdx + length - 1; i >= startIdx; i--) {
+    if (!charMap[i].isGap) { endEntry = charMap[i]; break; }
+  }
+
+  if (!startEntry || !endEntry) return null;
+
+  const range = document.createRange();
+  range.setStart(startEntry.node, startEntry.offset);
+  range.setEnd(endEntry.node, endEntry.offset + 1);
+  return range;
+}
 
 function renderHighlights() {
   clearHighlights();
   if (!activeField) return;
 
+  // Textareas and inputs: use a simple overlay approach
+  if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
+    renderTextareaHighlights();
+    return;
+  }
+
   createHighlightsContainer();
+
+  const { text: alignedText, charMap } = buildAlignedTextMap(activeField);
   const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
 
-  // Build char map once for the whole field — this is the key to handling
-  // ProseMirror and other complex contenteditable structures.
-  const charMap = buildCharMap(activeField);
-  const fullText = charMap.map(c => c.node.textContent[c.offset]).join('');
-
-  occurrenceCounter.clear();
-
   for (const match of visible) {
-    const searchText = fullText.slice(match.offset, match.offset + match.length);
+    const searchText = alignedText.slice(match.offset, match.offset + match.length);
     if (!searchText) continue;
 
-    // Track duplicate occurrences
-    const key = `${searchText}|${match.offset}`;
-    const occurrence = occurrenceCounter.get(key) || 0;
-    occurrenceCounter.set(key, occurrence + 1);
+    // Find this text in the aligned text (handle potential duplicates)
+    const foundIdx = alignedText.indexOf(searchText, 0);
+    if (foundIdx === -1) continue;
 
-    // Find the Nth occurrence of this text in the full text
-    let searchStart = 0;
-    let foundOccurrence = 0;
-    let foundOffset = -1;
-    while (true) {
-      const idx = fullText.indexOf(searchText, searchStart);
-      if (idx === -1) break;
-      if (foundOccurrence === occurrence) {
-        foundOffset = idx;
-        break;
-      }
-      foundOccurrence++;
-      searchStart = idx + 1;
-    }
-
-    if (foundOffset === -1) continue;
-
-    // Use char map to create a Range that spans potentially multiple text nodes
-    const range = rangeFromCharMap(charMap, foundOffset, searchText.length);
+    const range = rangeFromCharMap(charMap, foundIdx, searchText.length);
     if (!range) continue;
 
     const rects = range.getClientRects();
@@ -707,6 +744,7 @@ function renderHighlights() {
       hl.className = 'wr-highlight';
       hl.dataset.issueType = issueType;
       hl.dataset.matchOffset = String(match.offset);
+      hl.dataset.matchLength = String(match.length);
       hl.style.position = 'fixed';
       hl.style.left = `${rect.left}px`;
       hl.style.top = `${rect.top + rect.height - 4}px`;
@@ -718,6 +756,64 @@ function renderHighlights() {
 
     range.detach();
   }
+}
+
+/**
+ * For textarea/input fields, render underlines by overlaying
+ * a transparent mirror of the text to find character positions.
+ */
+function renderTextareaHighlights() {
+  createHighlightsContainer();
+  const field = activeField;
+  const text = field.value;
+  const style = window.getComputedStyle(field);
+  const rect = field.getBoundingClientRect();
+
+  // Create a mirror element to measure text positions
+  const mirror = document.createElement('div');
+  mirror.style.cssText = `
+    position:absolute;visibility:hidden;white-space:pre-wrap;word-wrap:break-word;
+    overflow:hidden;font:${style.font} ${style.fontSize}/${style.lineHeight} ${style.fontFamily};
+    padding:${style.padding};border:${style.border};width:${field.clientWidth}px;
+  `;
+  document.body.appendChild(mirror);
+
+  const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
+
+  for (const match of visible) {
+    const searchText = text.slice(match.offset, match.offset + match.length);
+    if (!searchText) continue;
+
+    // Measure position of the error text
+    mirror.textContent = text.slice(0, match.offset);
+    const beforeSpan = document.createElement('span');
+    beforeSpan.textContent = searchText;
+    mirror.appendChild(beforeSpan);
+    const afterText = document.createTextNode(text.slice(match.offset + match.length));
+    mirror.appendChild(afterText);
+
+    const spanRect = beforeSpan.getBoundingClientRect();
+    const mirrorRect = mirror.getBoundingClientRect();
+
+    if (spanRect.width > 0) {
+      const hl = document.createElement('div');
+      hl.className = 'wr-highlight';
+      hl.dataset.issueType = match.rule?.issueType || 'other';
+      hl.dataset.matchOffset = String(match.offset);
+      hl.dataset.matchLength = String(match.length);
+      hl.style.position = 'fixed';
+      hl.style.left = `${rect.left + spanRect.left - mirrorRect.left}px`;
+      hl.style.top = `${rect.top + spanRect.top - mirrorRect.top + spanRect.height - 4}px`;
+      hl.style.width = `${spanRect.width}px`;
+      hl.style.height = '3px';
+      hl.style.pointerEvents = 'auto';
+      highlightsContainer.appendChild(hl);
+    }
+
+    mirror.textContent = '';
+  }
+
+  mirror.remove();
 }
 
 function onHighlightClick(e) {
@@ -751,7 +847,7 @@ async function runGrammarCheck() {
       updateBadgeCount();
     }
   } catch {
-    // Server unreachable — silently ignore
+    // Server unreachable
   }
 }
 
@@ -803,7 +899,7 @@ function showRewriteResult(_original, suggestion, mode) {
   const card = document.createElement('div');
   card.id = 'wr-rewrite-result';
   card.innerHTML = `
-    <div class="wr-rewrite-header">✦ ${escHtml(mode)} rewrite</div>
+    <div class="wr-rewrite-header">\u2726 ${escHtml(mode)} rewrite</div>
     <div class="wr-rewrite-suggestion">${escHtml(suggestion)}</div>
     <div class="wr-rewrite-actions">
       <button class="wr-fix-btn primary" data-action="replace">Replace</button>
@@ -832,7 +928,7 @@ function showRewriteResult(_original, suggestion, mode) {
     } else if (action === 'copy') {
       try {
         await navigator.clipboard.writeText(suggestion);
-        e.target.textContent = '✓ Copied';
+        e.target.textContent = '\u2713 Copied';
       } catch { e.target.textContent = 'Copy failed'; }
     } else if (action === 'dismiss') {
       card.remove();
@@ -857,7 +953,7 @@ async function showSynonyms(word, anchorRect) {
 
   synonymCard = document.createElement('div');
   synonymCard.id = 'wr-synonym-card';
-  synonymCard.innerHTML = '<div style="padding:10px;color:#718096;font-size:13px">Loading synonyms…</div>';
+  synonymCard.innerHTML = '<div style="padding:10px;color:#718096;font-size:13px">Loading synonyms\u2026</div>';
   const top = anchorRect.bottom + 8;
   const left = Math.max(6, Math.min(anchorRect.left, window.innerWidth - 320));
   synonymCard.style.top = `${top}px`;
@@ -869,7 +965,7 @@ async function showSynonyms(word, anchorRect) {
     const resp = await chrome.runtime.sendMessage({ type: 'getSynonyms', word });
     if (!resp || !synonymCard) return;
 
-    let html = `<div style="font-weight:600;font-size:14px;color:#059669;margin-bottom:8px">✦ ${escHtml(word)}</div>`;
+    let html = `<div style="font-weight:600;font-size:14px;color:#059669;margin-bottom:8px">\u2726 ${escHtml(word)}</div>`;
 
     if (resp.definitions && resp.definitions.length) {
       html += '<div style="margin-bottom:8px"><span style="font-size:11px;text-transform:uppercase;color:#718096;letter-spacing:.04em">Definition</span>';
@@ -1038,6 +1134,11 @@ async function checkSiteEnabled() {
   } catch { siteEnabled = true; }
 }
 
+// ─── Window resize handler ──────────────────────────────────────
+function onResize() {
+  if (currentMatches.length > 0 && activeField) renderHighlights();
+}
+
 // ─── Init ───────────────────────────────────────────────────────
 async function init() {
   await checkSiteEnabled();
@@ -1051,6 +1152,7 @@ async function init() {
   document.addEventListener('selectionchange', onSelectionChange);
   document.addEventListener('click', onHighlightClick);
   document.addEventListener('dblclick', onDoubleClick);
+  window.addEventListener('resize', onResize);
   setupObserver();
 
   if (document.activeElement) {
