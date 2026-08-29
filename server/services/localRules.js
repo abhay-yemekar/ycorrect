@@ -1,3 +1,6 @@
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 /**
  * Local grammar rules — pattern-based checks that run alongside LanguageTool.
  *
@@ -286,6 +289,31 @@ const rules = [
  * @param {string} text
  * @returns {LocalMatch[]}
  */
+
+// ── Extra rules loaded from data file ──
+function loadExtraRules() {
+  try {
+    const raw = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "extraRulesData.json"), "utf8");
+    const data = JSON.parse(raw);
+    return data.map(r => {
+      const pat = r[1].replace(/WB/g, String.fromCharCode(92)+"b").replace(/WS/g, String.fromCharCode(92)+"s").replace(/WC/g, String.fromCharCode(92)+"w");
+      const rep = r[4] || null;
+      return {
+        id: r[0],
+        pattern: new RegExp(pat, r[2]),
+        message: r[3],
+        replacement: rep ? new Function("m", "return " + rep) : null,
+        category: r[5],
+      };
+    });
+  } catch { return []; }
+}
+let _extraRules = null;
+function getExtraRules() {
+  if (_extraRules === null) { _extraRules = loadExtraRules();  }
+  return _extraRules;
+}
+
 export function checkLocal(text) {
   if (!text) return [];
 
@@ -316,5 +344,25 @@ export function checkLocal(text) {
     }
   }
 
+  // Run extra rules from data file
+  for (const rule of getExtraRules()) {
+    rule.pattern.lastIndex = 0;
+    let m;
+    while ((m = rule.pattern.exec(text)) !== null) {
+      const offset = m.index;
+      const length = m[0].length;
+      const replacement = rule.replacement ? rule.replacement(m) : null;
+      matches.push({
+        offset, length,
+        message: rule.message,
+        replacements: replacement ? [{ value: replacement }] : [],
+        rule: {
+          id: rule.id,
+          issueType: rule.category === "Grammar" ? "grammar" : "style",
+          category: { name: rule.category },
+        },
+      });
+    }
+  }
   return matches;
 }
