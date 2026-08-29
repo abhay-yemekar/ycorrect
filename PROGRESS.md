@@ -6,6 +6,40 @@ this file alone: what was done, what was decided, what is next.
 
 ---
 
+## Session 2026-08-29 — Fix underline rendering for ProseMirror/ChatGPT ✅
+
+**Goal:** fix the underline system so it works on ChatGPT's ProseMirror editor
+where text is split across multiple DOM nodes.
+
+**Root cause:** The char map approach (`buildCharMap`) mapped text offsets using
+only text nodes, but `getFieldText()` returns `innerText` which includes newlines
+between block-level elements (p, div, etc.) that don't exist as text nodes. This
+caused a systematic offset mismatch — error text at offset 10 in the server's
+view might be at offset 12 in the char map.
+
+**Done:**
+
+- **Block-gap aligned text map** (`buildAlignedTextMap`): now detects block-level
+  ancestors (p, div, li, h1-h6, td, blockquote) and inserts synthetic newline
+  entries in the char map when consecutive text nodes are in different blocks.
+  This makes the aligned text match `innerText` exactly.
+- **Textarea/input highlight rendering** (`renderTextareaHighlights`): for non-
+  contenteditable fields, uses a DOM mirror technique to measure error positions
+  via `getBoundingClientRect()` on a hidden span.
+- **Added window resize handler**: re-renders highlights when the window is
+  resized (fixes underlines drifting on resize).
+- **Passes `matchLength` in dataset** for future multi-range underlines.
+
+**Verification:** `npm run lint` clean · `npm test` 120/120 pass.
+
+**Still open for next sessions:**
+- E3: Extension UX polish — keyboard shortcuts, loading states, error feedback.
+- E4: Extension settings page with full config.
+- E5: Web Store packaging.
+- Manual smoke pass in real browser to confirm underlines render correctly.
+
+---
+
 ## Session 2026-08-28 — Extension rewrite: rebrand to WriteRight, fix all display bugs, Grammarly-style underlines ✅
 
 **Goal:** rebrand from "yC" to "WriteRight", fix the critical bug where no extension UI was visible (badge, toolbar,
