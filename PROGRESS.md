@@ -1,3 +1,19 @@
+## Session 2026-08-30 - Comprehensive Upgrade Prompt written
+
+**Goal:** Write a complete flagship upgrade blueprint comparing WriteRight to Grammarly and QuillBot.
+
+**Done:**
+
+- Researched Grammarly and QuillBot features in 2025-2026 via web search
+- Analyzed 15 Grammarly features we lack, 10 QuillBot features we lack, 12 industry-leading features
+- Wrote comprehensive UPGRADE_PROMPT.md (216 lines, 6 phases, 50+ tasks)
+- Documented success metrics, implementation rules, priority order
+- Each phase has status tracking and checkbox system
+
+**Verification:** npm run check not needed (docs-only change).
+
+---
+
 # PROGRESS — yCorrect v0.2 "trustworthy" release
 
 This file is the continuity record for the v0.2 upgrade. **Newest session
