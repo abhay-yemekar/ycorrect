@@ -1,3 +1,29 @@
+## Session 2026-08-30 (Part 2) - Complete Remaining Phases
+
+**Done:**
+
+### Phase 1: Rule Confidence Scores
+- Added confidence field to extra rules data
+
+### Phase 2: Multilingual + Translation
+- New /api/translate endpoint (18 languages)
+- Added translate() to server/services/gemini.js
+- Registered translate route in server/app.js
+
+### Phase 3: Vocabulary Enhancement
+- New /api/vocabulary endpoint for word choice suggestions
+- Added vocabularyEnhance() to server/services/gemini.js
+- Registered vocabulary route in server/app.js
+
+### Frontend
+- Added Translate and Vocab tabs to index.html
+- Added ht() translate handler to js/aiFeatures.js
+- Added hv() vocabulary handler to js/aiFeatures.js
+- Updated initAIFeatures() to wire new handlers
+
+**Verification:** npm run lint clean, npm test 120/120 pass.
+
+---
 ## Session 2026-08-30 - Flagship Upgrade Implementation
 
 **Goal:** Implement the flagship upgrade plan from UPGRADE_PROMPT.md.

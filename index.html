@@ -60,6 +60,8 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="tabCompose" data-tab="compose" tabindex="-1">Compose</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tabDetect" data-tab="detect" tabindex="-1">AI Score</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tabCite" data-tab="cite" tabindex="-1">Cite</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabTranslate" data-tab="translate" tabindex="-1">Translate</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabVocab" data-tab="vocab" tabindex="-1">Vocab</button>
     </div>
     <div id="panel" class="panel-body">
       <div id="tabIssues" class="tabpane active" role="tabpanel" tabindex="0" aria-label="Issues">
@@ -152,6 +154,18 @@
         <select id="citeStyle"><option value="APA">APA</option><option value="MLA">MLA</option><option value="Chicago">Chicago</option><option value="Harvard">Harvard</option><option value="IEEE">IEEE</option><option value="Vancouver">Vancouver</option></select>
         <button class="btn primary" id="citeBtn">Generate Citation</button>
         <div id="citeOut"></div>
+      </div>
+<div id="tabTranslate" class="tabpane" role="tabpanel" tabindex="0" aria-label="Translate">
+        <p class="hint">Translate your text to 18+ languages using AI.</p>
+        <label for="translateLang">Target Language</label>
+        <select id="translateLang"><option value="Spanish">Spanish</option><option value="French">French</option><option value="German">German</option><option value="Portuguese">Portuguese</option><option value="Italian">Italian</option><option value="Japanese">Japanese</option><option value="Chinese">Chinese</option><option value="Korean">Korean</option><option value="Arabic">Arabic</option><option value="Hindi">Hindi</option><option value="Russian">Russian</option><option value="Dutch">Dutch</option><option value="Swedish">Swedish</option><option value="Polish">Polish</option><option value="Turkish">Turkish</option><option value="Thai">Thai</option><option value="Vietnamese">Vietnamese</option><option value="Indonesian">Indonesian</option></select>
+        <button class="btn primary" id="translateBtn">Translate</button>
+        <div id="translateOut"></div>
+      </div>
+      <div id="tabVocab" class="tabpane" role="tabpanel" tabindex="0" aria-label="Vocabulary">
+        <p class="hint">Get suggestions for stronger word choices.</p>
+        <button class="btn primary" id="vocabBtn">Enhance Vocabulary</button>
+        <div id="vocabOut"></div>
       </div>
     </div>
   </aside>

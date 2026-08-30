@@ -359,6 +359,7 @@ export function checkLocal(text) {
         rule: {
           id: rule.id,
           issueType: rule.category === "Grammar" ? "grammar" : "style",
+          confidence: rule[6] || "medium",
           category: { name: rule.category },
         },
       });

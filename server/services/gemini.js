@@ -174,3 +174,24 @@ export async function cite(source, style) {
   const prompt = "Generate a " + style + " citation for this source. Source: " + source + " Return ONLY the formatted citation, no explanation.";
   return generate(prompt, 0.2);
 }
+
+/**
+ * Translate text.
+ */
+export async function translate(text, targetLanguage) {
+  const prompt = "Translate the following text to " + targetLanguage + ". Return ONLY the translated text, no quotes or explanation. Text: " + text;
+  return generate(prompt, 0.3);
+}
+
+/**
+ * Enhance vocabulary — suggest stronger word choices.
+ */
+export async function vocabularyEnhance(text) {
+  const prompt = "Analyze this text and suggest stronger word choices for weak or overused words. Respond ONLY with JSON: {suggestions: [{word: string, replacement: string, reason: string}]} Text: " + text;
+  const raw = await generate(prompt, 0.3, true);
+  try {
+    return JSON.parse(raw.replace(/`{3}(?:json)?s*|`{3}s*/g, "").trim());
+  } catch {
+    return { suggestions: [] };
+  }
+}

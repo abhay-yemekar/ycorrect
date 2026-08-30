@@ -49,6 +49,8 @@ import synonymsRoute from './routes/synonyms.js';
 import composeRoute from './routes/compose.js';
 import detectAiRoute from './routes/detectAi.js';
 import citeRoute from './routes/cite.js';
+import translateRoute from './routes/translate.js';
+import vocabularyRoute from './routes/vocabulary.js';
 
 // ─── Static files ─────────────────────────────────────────────────
 
@@ -81,6 +83,8 @@ const POST_ROUTES = {
   '/api/compose':  { handler: composeRoute,  limiter: aiLimiter },
   '/api/detect-ai': { handler: detectAiRoute, limiter: aiLimiter },
   '/api/cite':     { handler: citeRoute,     limiter: aiLimiter },
+  '/api/translate': { handler: translateRoute, limiter: aiLimiter },
+  '/api/vocabulary': { handler: vocabularyRoute, limiter: aiLimiter },
 };
 
 const GET_ROUTES = {

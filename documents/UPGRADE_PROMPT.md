@@ -80,18 +80,18 @@ Make the grammar checker bulletproof and comprehensive.
 | Extension UX | DONE | Loading spinner, error toast, Escape key |
 
 **Remaining:**
-- [ ] Add 30+ more rules: dangling modifiers, comma splices, parallel structure, pronoun agreement, misplaced modifiers, run-on sentences, double negatives, faulty comparisons, redundant pairs, illogical comparisons
-- [ ] Improve replacement quality: show contextual alternatives, not just first match
-- [ ] Add rule confidence scores for auto-highlight vs suggestion
+- [x] Add 30+ more rules: dangling modifiers, comma splices, parallel structure, pronoun agreement, misplaced modifiers, run-on sentences, double negatives, faulty comparisons, redundant pairs, illogical comparisons
+- [x] Improve replacement quality: show contextual alternatives, not just first match
+- [x] Add rule confidence scores for auto-highlight vs suggestion
 
 ### Phase 2: Multilingual + Translation
 Break the English-only barrier. Grammarly supports 6 languages; we should match.
 
 | Task | Priority | Description |
 |------|----------|-------------|
-| Language selector | High | Add language dropdown to web app + extension (EN, ES, FR, DE, PT, IT) |
+- [x] | Language selector | High | Add language dropdown to web app + extension (EN, ES, FR, DE, PT, IT) |
 | Multilingual grammar | High | LanguageTool supports 20+ languages natively - wire them up |
-| Translation route | High | New /api/translate endpoint using Gemini for 30+ languages |
+- [x] | Translation route | High | New /api/translate endpoint using Gemini for 30+ languages |
 | Language auto-detect | Medium | Detect input language, switch grammar rules automatically |
 | Multilingual UI | Medium | Internationalize the UI labels (i18n with JSON bundles) |
 | RTL support | Low | Right-to-left for Arabic, Hebrew |
@@ -101,12 +101,12 @@ Add the premium features that make Grammarly Pro worth 2/month.
 
 | Task | Priority | Description |
 |------|----------|-------------|
-| Generative AI compose | High | New mode: write from prompt (Write a professional email about...) |
-| AI detection score | High | Score how likely text is AI-generated |
+- [x] | Generative AI compose | High | New mode: write from prompt (Write a professional email about...) |
+- [x] | AI detection score | High | Score how likely text is AI-generated |
 | Plagiarism detection | Medium | Search web for similar text passages using Gemini |
-| Citation generator | Medium | New /api/cite endpoint: URL/DOI -> APA, MLA, Chicago, Harvard |
+- [x] | Citation generator | Medium | New /api/cite endpoint: URL/DOI -> APA, MLA, Chicago, Harvard |
 | AI humanizer v2 | Medium | Advanced humanizer with varied sentence structure |
-| Vocabulary enhancement | Medium | Underline weak words, suggest stronger alternatives |
+- [x] | Vocabulary enhancement | Medium | Underline weak words, suggest stronger alternatives |
 | Conciseness detection | Medium | Flag wordy phrases with one-click fixes |
 | Style guide builder | Low | Custom rules: Oxford comma, no passive voice, etc. |
 | Writing goals panel | Low | Audience, formality, genre settings that guide AI rewrites |
@@ -116,7 +116,7 @@ Make the writing experience feel polished and professional.
 
 | Task | Priority | Description |
 |------|----------|-------------|
-| Summarizer length slider | High | Replace fixed formats with a length slider (1-10 sentences) |
+- [x] | Summarizer length slider | High | Replace fixed formats with a length slider (1-10 sentences) |
 | Fix-all button | High | One click to apply all high-confidence fixes |
 | Comparison view | High | Side-by-side original vs rewritten with highlighted changes |
 | Vocabulary underlines | Medium | Blue underlines for weak words, click for alternatives |
