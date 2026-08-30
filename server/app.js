@@ -46,6 +46,9 @@ import summarizeRoute from './routes/summarize.js';
 import toneRoute from './routes/tone.js';
 import healthRoute from './routes/health.js';
 import synonymsRoute from './routes/synonyms.js';
+import composeRoute from './routes/compose.js';
+import detectAiRoute from './routes/detectAi.js';
+import citeRoute from './routes/cite.js';
 
 // ─── Static files ─────────────────────────────────────────────────
 
@@ -75,6 +78,9 @@ const POST_ROUTES = {
   '/api/ai':      { handler: aiRoute,      limiter: aiLimiter },
   '/api/summarize': { handler: summarizeRoute, limiter: aiLimiter },
   '/api/tone':    { handler: toneRoute,     limiter: aiLimiter },
+  '/api/compose':  { handler: composeRoute,  limiter: aiLimiter },
+  '/api/detect-ai': { handler: detectAiRoute, limiter: aiLimiter },
+  '/api/cite':     { handler: citeRoute,     limiter: aiLimiter },
 };
 
 const GET_ROUTES = {

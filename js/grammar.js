@@ -250,7 +250,8 @@ function renderIssuesPanel() {
     return;
   }
 
-  pane.innerHTML = issues.map((x, i) => {
+  const fixBtn = issues.length > 0 ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border,#e2e8f0)"><button id="fixAllBtn" class="btn primary" style="width:100%">Fix all high-confidence issues</button></div>' : '';
+  pane.innerHTML = fixBtn + issues.map((x, i) => {
     const editor = getEditor();
     const original = editor.value.slice(x.offset, x.offset + x.length);
     const repls = (x.replacements || []).slice(0, 4);

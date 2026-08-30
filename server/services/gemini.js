@@ -145,3 +145,32 @@ export async function detectTone(text) {
     return { tone: 'Neutral', formality: 'Neutral', confidence: 0 };
   }
 }
+
+/**
+ * Compose text from a prompt.
+ */
+export async function compose(prompt, systemPrompt, temperature) {
+  const fullPrompt = systemPrompt + String.fromCharCode(10,10) + "User request: " + prompt;
+  return generate(fullPrompt, temperature);
+}
+
+/**
+ * Detect AI-generated text.
+ */
+export async function detectAi(text) {
+  const prompt = "Analyze this text and estimate the probability it was written by AI. Respond ONLY with JSON: {score: integer 0-100, confidence: integer 0-100, reason: brief explanation} Text: " + text;
+  const raw = await generate(prompt, 0.2, true);
+  try {
+    return JSON.parse(raw.replace(/[`]{3}(?:json)?s*/g, "").trim());
+  } catch {
+    return { score: 0, confidence: 0, reason: "Could not analyze" };
+  }
+}
+
+/**
+ * Generate a citation.
+ */
+export async function cite(source, style) {
+  const prompt = "Generate a " + style + " citation for this source. Source: " + source + " Return ONLY the formatted citation, no explanation.";
+  return generate(prompt, 0.2);
+}

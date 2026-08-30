@@ -712,3 +712,17 @@ mark {
   padding: 0 2px;
 }
 
+
+
+.compare-view { display: flex; gap: 12px; margin-bottom: 12px; }
+.compare-col { flex: 1; }
+.compare-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim, #718096); margin-bottom: 4px; font-weight: 600; }
+.compare-text { padding: 8px 10px; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+.compare-col:first-child .compare-text { background: var(--bg, #f8fafc); border: 1px solid var(--border, #e2e8f0); }
+.compare-col:last-child .compare-text { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.del { background: #fee2e2; text-decoration: line-through; padding: 0 2px; border-radius: 2px; }
+.ins { background: #dcfce7; padding: 0 2px; border-radius: 2px; }
+[data-theme=dark] .del { background: #7f1d1d; color: #fca5a5; }
+[data-theme=dark] .ins { background: #14532d; color: #86efac; }
+[data-theme=dark] .compare-col:first-child .compare-text { background: var(--bg); border-color: var(--border); }
+[data-theme=dark] .compare-col:last-child .compare-text { background: #14532d; border-color: #166534; }

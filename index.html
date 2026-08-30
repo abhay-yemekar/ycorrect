@@ -57,6 +57,9 @@
       <button class="tab" role="tab" aria-selected="false" aria-controls="tabParaphrase" data-tab="paraphrase" tabindex="-1">Paraphrase</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tabSummarize" data-tab="summarize" tabindex="-1">Summarize</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tabGoals" data-tab="goals" tabindex="-1">Goals</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabCompose" data-tab="compose" tabindex="-1">Compose</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabDetect" data-tab="detect" tabindex="-1">AI Score</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tabCite" data-tab="cite" tabindex="-1">Cite</button>
     </div>
     <div id="panel" class="panel-body">
       <div id="tabIssues" class="tabpane active" role="tabpanel" tabindex="0" aria-label="Issues">
@@ -91,7 +94,13 @@
         </select>
         <label for="sumLength">Length</label>
         <select id="sumLength">
-          <option value="short">Short</option>
+          <option value="1">1 sentence</option>
+          <option value="2">2 sentences</option>
+          <option value="3">3 sentences</option>
+          <option value="4">4 sentences</option>
+          <option value="5">5 sentences</option>
+          <option value="medium">Medium (~10 sentences)</option>
+          <option value="long">Long (~20 sentences)</option>
           <option value="medium" selected>Medium</option>
           <option value="long">Long</option>
         </select>
@@ -120,6 +129,29 @@
           <button class="btn ghost small" data-backup="import">⬆ Import (.json)</button>
         </div>
         <p class="hint">Import never overwrites existing documents — colliding ones are kept as copies.</p>
+      </div>
+<div id="tabCompose" class="tabpane" role="tabpanel" tabindex="0" aria-label="Compose">
+        <p class="hint">Generate text from a prompt. Write emails, articles, social posts, and more.</p>
+        <label for="composePrompt">What do you want to write?</label>
+        <textarea id="composePrompt" rows="3" placeholder="Write a professional email about the project update..."></textarea>
+        <label for="composeGenre">Genre</label>
+        <select id="composeGenre"><option value="General">General</option><option value="Email">Email</option><option value="Blog Post">Blog Post</option><option value="Social Media">Social Media</option><option value="Business">Business</option><option value="Academic">Academic</option><option value="Creative">Creative</option></select>
+        <button class="btn primary" id="composeBtn">Generate</button>
+        <div id="composeOut"></div>
+      </div>
+      <div id="tabDetect" class="tabpane" role="tabpanel" tabindex="0" aria-label="AI Detection">
+        <p class="hint">Check how likely your text is AI-generated. Paste text to analyze.</p>
+        <button class="btn primary" id="detectBtn">Analyze Current Text</button>
+        <div id="detectOut"></div>
+      </div>
+      <div id="tabCite" class="tabpane" role="tabpanel" tabindex="0" aria-label="Citations">
+        <p class="hint">Generate citations in APA, MLA, Chicago, Harvard, IEEE, or Vancouver format.</p>
+        <label for="citeSource">URL or DOI</label>
+        <input type="text" id="citeSource" placeholder="https://example.com/article or 10.1234/example">
+        <label for="citeStyle">Citation Style</label>
+        <select id="citeStyle"><option value="APA">APA</option><option value="MLA">MLA</option><option value="Chicago">Chicago</option><option value="Harvard">Harvard</option><option value="IEEE">IEEE</option><option value="Vancouver">Vancouver</option></select>
+        <button class="btn primary" id="citeBtn">Generate Citation</button>
+        <div id="citeOut"></div>
       </div>
     </div>
   </aside>

@@ -20,6 +20,7 @@ import { initBackup } from './backup.js';
 import { initAccessibility } from './accessibility.js';
 import { initSynonyms } from './synonyms.js';
 import { initContinuation } from './continuation.js';
+import { initAIFeatures } from './aiFeatures.js';
 import { initSentenceRewrite } from './sentenceRewrite.js';
 import {
   initDocuments, getCurrentDoc, persistCurrent,
@@ -45,6 +46,7 @@ initBackup();
 initAccessibility();
 initSynonyms();
 initContinuation();
+initAIFeatures();
 initSentenceRewrite();
 
 // ─── Load initial document ────────────────────────────────────────
