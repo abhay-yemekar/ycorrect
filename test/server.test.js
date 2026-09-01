@@ -231,3 +231,40 @@ describe('security', () => {
     assert.equal(res.status, 204);
   });
 });
+
+describe('New API routes (validation)', () => {
+  test('POST /api/compose rejects missing prompt', async () => {
+    const res = await post('/api/compose', JSON.stringify({}));
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/detect-ai rejects missing text', async () => {
+    const res = await post('/api/detect-ai', JSON.stringify({}));
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/cite rejects missing source', async () => {
+    const res = await post('/api/cite', JSON.stringify({}));
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/cite rejects invalid style', async () => {
+    const res = await post('/api/cite', JSON.stringify({ source: 'https://example.com', style: 'MLA2' }));
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/translate rejects missing text', async () => {
+    const res = await post('/api/translate', JSON.stringify({ targetLanguage: 'Spanish' }));
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/translate rejects invalid language', async () => {
+    const res = await post('/api/translate', JSON.stringify({ text: 'hello', targetLanguage: 'Klingon' }));
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/vocabulary rejects missing text', async () => {
+    const res = await post('/api/vocabulary', JSON.stringify({}));
+    assert.equal(res.status, 400);
+  });
+});

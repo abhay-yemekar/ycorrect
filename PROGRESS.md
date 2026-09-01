@@ -1,3 +1,35 @@
+## Session 2026-09-01 (Part 2) — Phases 2-5: Extension Underlines, Tests, Sidebar
+
+**Goal:** Fix extension underlines, add API route tests, rewrite aiFeatures.js, add sidebar panel.
+
+### Phase 2: Extension Underlines Fix
+- getFieldText() for contenteditable now builds flat text from text nodes (no block-boundary newlines)
+- Removed block-gap newline insertion from buildAlignedTextMap (was causing offset mismatches)
+- Removed unused getBlockParent function
+- Added scroll listeners on scrollable ancestors to reposition underlines during scroll
+- Underlines now work on ChatGPT ProseMirror editor
+
+### Phase 3: API Route Tests
+- Added 7 new validation tests for compose, detect-ai, cite, translate, vocabulary routes
+- Total: 127 tests across 23 suites
+
+### Phase 4: aiFeatures.js Rewrite
+- Rewrote from 12 minified lines to 144 readable lines
+- Named functions: handleCompose, handleDetectAi, handleCite, handleTranslate, handleVocabulary
+- Clean error handling, consistent UI patterns
+
+### Phase 5: Extension Sidebar Panel
+- Grammarly-style sidebar panel (380px, slides in from right)
+- Shows all grammar issues with error text, message, and replacement chips
+- Click issue to show fix card, click chip to apply replacement
+- Auto-refreshes when grammar check runs
+- Toggle via Issues button in toolbar
+- Dark mode support
+
+**Verification:** npm run lint clean · npm test 127/127 pass · zero runtime deps
+
+---
+
 ## Session 2026-09-01 — Phase 1: Fix All Critical Bugs + Rebrand
 
 **Goal:** Make the project consistently branded as WriteRight, fix broken grammar rules, and add 40+ common misspelling rules.

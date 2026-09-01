@@ -37,6 +37,7 @@ let currentMatches = [];
 const ignoreSet = new Set();
 let grammarSpinnerEl = null;
 let toastTimer = null;
+let sidebarEl = null;
 
 // ─── Shadow DOM styles ─────────────────────────────────────────
 const STYLES = `
@@ -268,7 +269,49 @@ const STYLES = `
   .wr-synonym-card{background:#1e293b;border-color:#334155;color:#e2e8f0}
   .wr-syn-word{background:#334155;color:#e2e8f0;border-color:#475569}
   .wr-toolbar-title{color:#34d399;border-bottom-color:#334155}
+  #wr-sidebar{background:#1e293b;border-color:#334155;color:#e2e8f0}
+  .wr-sb-issue{border-color:#334155}
+  .wr-sb-issue:hover{background:#334155}
+  .wr-sb-empty{color:#94a3b8}
 }
+
+/* Sidebar panel */
+#wr-sidebar{
+  position:fixed;top:0;right:0;width:380px;height:100vh;z-index:2147483647;
+  pointer-events:auto;background:#fff;border-left:1px solid #e2e8f0;
+  box-shadow:-4px 0 30px rgba(0,0,0,.15);display:none;
+  font:13px/1.5 system-ui,-apple-system,sans-serif;color:#1a202c;
+  animation:wrSlideIn .2s ease;overflow-y:auto;
+}
+@keyframes wrSlideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.wr-sb-header{
+  position:sticky;top:0;background:#fff;z-index:1;
+  padding:16px;border-bottom:1px solid #e2e8f0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.wr-sb-title{font-size:14px;font-weight:700;color:#059669}
+.wr-sb-close{background:none;border:none;font-size:20px;cursor:pointer;color:#718096;padding:0 4px}
+.wr-sb-close:hover{color:#1a202c}
+.wr-sb-count{font-size:12px;color:#718096;margin-top:2px}
+.wr-sb-body{padding:8px 16px 16px}
+.wr-sb-empty{text-align:center;padding:40px 20px;color:#94a3b8}
+.wr-sb-empty-icon{font-size:32px;margin-bottom:8px}
+.wr-sb-issue{
+  padding:12px;margin-bottom:8px;border-radius:8px;
+  border:1px solid #e2e8f0;cursor:pointer;transition:background .1s;
+}
+.wr-sb-issue:hover{background:#f7fafc}
+.wr-sb-issue-type{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#718096;margin-bottom:4px}
+.wr-sb-issue-original{font-size:13px;color:#dc2626;text-decoration:line-through;margin-bottom:4px}
+.wr-sb-issue-msg{font-size:12px;color:#64748b;margin-bottom:6px}
+.wr-sb-issue-chips{display:flex;flex-wrap:wrap;gap:4px}
+.wr-sb-chip{
+  padding:4px 10px;border-radius:6px;border:1px solid #059669;
+  background:#f0fdf4;cursor:pointer;font-size:12px;font-weight:500;
+  color:#059669;transition:all .1s;
+  font-family:system-ui,-apple-system,sans-serif;
+}
+.wr-sb-chip:hover{background:#059669;color:#fff}
 `;
 
 let shadowRoot = null;
@@ -393,6 +436,7 @@ function showToolbar() {
       </div>
       <div class="wr-toolbar-row">
         <button class="wr-action" id="wr-check">\u2713 Check grammar</button>
+        <button class="wr-action" id="wr-sidebar-toggle">\u2630 Issues</button>
         <button class="wr-action" id="wr-rewrite">\u2726 Rewrite selection</button>
       </div>
       <div class="wr-toolbar-row wr-toolbar-info">
@@ -443,6 +487,8 @@ function onToolbarClick(e) {
     grammarEnabled = !grammarEnabled;
     updateGrammarToggle();
     if (!grammarEnabled) clearHighlights();
+  } else if (action === 'wr-sidebar-toggle') {
+    toggleSidebar();
   } else if (action === 'wr-open-app') {
     chrome.runtime.sendMessage({ type: 'openApp' });
   }
@@ -566,7 +612,15 @@ function getFieldText() {
   if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
     return activeField.value;
   }
-  return activeField.innerText || activeField.textContent || '';
+  // For contenteditable: build flat text from text nodes (no block-boundary newlines)
+  // This matches what the char map produces, avoiding offset mismatches
+  let result = '';
+  const walker = document.createTreeWalker(activeField, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while ((node = walker.nextNode())) {
+    result += node.textContent;
+  }
+  return result;
 }
 
 function setFieldText(text) {
@@ -672,17 +726,6 @@ function buildAlignedTextMap(field) {
 
   for (let i = 0; i < nodes.length; i++) {
     const { node, length } = nodes[i];
-
-    // Add a newline gap if this node is in a different block than the previous
-    if (i > 0) {
-      const prevParent = getBlockParent(nodes[i - 1].node);
-      const curParent = getBlockParent(node);
-      if (prevParent !== curParent) {
-        text += '\n';
-        charMap.push({ node, offset: 0, isGap: true });
-      }
-    }
-
     for (let j = 0; j < length; j++) {
       text += node.textContent[j];
       charMap.push({ node, offset: j });
@@ -690,23 +733,6 @@ function buildAlignedTextMap(field) {
   }
 
   return { text, charMap };
-}
-
-/**
- * Get the nearest block-level ancestor (p, div, li, h1-h6, td, etc.)
- */
-function getBlockParent(node) {
-  let cur = node.parentElement;
-  while (cur && cur !== activeField) {
-    const tag = cur.tagName;
-    if (tag === 'P' || tag === 'DIV' || tag === 'LI' || tag === 'H1' ||
-        tag === 'H2' || tag === 'H3' || tag === 'H4' || tag === 'H5' ||
-        tag === 'H6' || tag === 'TD' || tag === 'TH' || tag === 'BLOCKQUOTE') {
-      return cur;
-    }
-    cur = cur.parentElement;
-  }
-  return activeField;
 }
 
 /**
@@ -874,6 +900,7 @@ async function runGrammarCheck() {
       renderHighlights();
       updateIssueCount();
       updateBadgeCount();
+      if (sidebarEl && sidebarEl.style.display !== 'none') renderSidebar();
     }
   } catch {
     showToast("Could not reach WriteRight server. Make sure npm start is running.", "error");
@@ -1055,6 +1082,31 @@ function onDoubleClick(e) {
 }
 
 // ─── Field focus / blur ─────────────────────────────────────────
+let scrollListeners = [];
+
+function addScrollListeners(field) {
+  removeScrollListeners();
+  let cur = field?.parentElement;
+  while (cur && cur !== document.body) {
+    const style = window.getComputedStyle(cur);
+    if (style.overflow === 'auto' || style.overflow === 'scroll' ||
+        style.overflowY === 'auto' || style.overflowY === 'scroll' ||
+        style.overflowX === 'auto' || style.overflowX === 'scroll') {
+      const handler = () => { if (currentMatches.length > 0) renderHighlights(); };
+      cur.addEventListener('scroll', handler, { passive: true });
+      scrollListeners.push({ el: cur, handler });
+    }
+    cur = cur.parentElement;
+  }
+}
+
+function removeScrollListeners() {
+  for (const { el, handler } of scrollListeners) {
+    el.removeEventListener('scroll', handler);
+  }
+  scrollListeners = [];
+}
+
 function activateField(field) {
   if (!field || field === activeField) return;
   activeField = field;
@@ -1062,6 +1114,7 @@ function activateField(field) {
   hideFixCard();
   hideRewriteChip();
   showBadge(field);
+  addScrollListeners(field);
   scheduleGrammarCheck();
   startPolling();
 }
@@ -1075,6 +1128,7 @@ function deactivateField() {
   hideRewriteChip();
   clearHighlights();
   removeHighlightsContainer();
+  removeScrollListeners();
   currentMatches = [];
   stopPolling();
 }
@@ -1204,7 +1258,6 @@ async function init() {
 }
 
 // --- Loading spinner ---
-// --- Loading spinner ---
 function showSpinner() {
   ensureShadowHost();
   if (!grammarSpinnerEl) {
@@ -1230,6 +1283,102 @@ function showToast(msg, type) {
   shadowRoot.appendChild(toast);
   toast.querySelector(".wr-toast-dismiss").addEventListener("click", () => toast.remove());
   toastTimer = setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+}
+
+// --- Sidebar panel ---
+function toggleSidebar() {
+  if (sidebarEl && sidebarEl.style.display !== 'none') {
+    hideSidebar();
+  } else {
+    showSidebar();
+  }
+}
+
+function showSidebar() {
+  ensureShadowHost();
+  if (!sidebarEl) {
+    sidebarEl = document.createElement('div');
+    sidebarEl.id = 'wr-sidebar';
+    shadowRoot.appendChild(sidebarEl);
+  }
+  renderSidebar();
+  sidebarEl.style.display = 'block';
+}
+
+function hideSidebar() {
+  if (sidebarEl) sidebarEl.style.display = 'none';
+}
+
+function renderSidebar() {
+  if (!sidebarEl) return;
+  const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
+
+  let html = '<div class="wr-sb-header">' +
+    '<div><div class="wr-sb-title">\u2726 WriteRight</div>' +
+    '<div class="wr-sb-count">' + visible.length + ' issue' + (visible.length !== 1 ? 's' : '') + ' found</div></div>' +
+    '<button class="wr-sb-close" id="wr-sb-close">\u00d7</button>' +
+    '</div>';
+
+  html += '<div class="wr-sb-body">';
+
+  if (visible.length === 0) {
+    html += '<div class="wr-sb-empty"><div class="wr-sb-empty-icon">\u2713</div>' +
+      '<div>No issues found</div></div>';
+  } else {
+    for (let i = 0; i < visible.length; i++) {
+      const m = visible[i];
+      const text = getFieldText();
+      const original = text.slice(m.offset, m.offset + m.length);
+      const repls = (m.replacements || []).slice(0, 4);
+      const cat = m.rule?.category?.name || 'Writing';
+      const type = m.rule?.issueType || 'issue';
+
+      html += '<div class="wr-sb-issue" data-idx="' + i + '">';
+      html += '<div class="wr-sb-issue-type">' + escHtml(cat) + ' \u00b7 ' + escHtml(type) + '</div>';
+      html += '<div class="wr-sb-issue-original">' + escHtml(original) + '</div>';
+      html += '<div class="wr-sb-issue-msg">' + escHtml(m.message || 'Improve this text') + '</div>';
+
+      if (repls.length > 0) {
+        html += '<div class="wr-sb-issue-chips">';
+        for (const r of repls) {
+          html += '<button class="wr-sb-chip" data-idx="' + i + '" data-replace="' + escHtml(r.value) + '">' + escHtml(r.value) + '</button>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+    }
+  }
+
+  html += '</div>';
+  sidebarEl.innerHTML = html;
+
+  // Wire up close button
+  sidebarEl.querySelector('#wr-sb-close').addEventListener('click', hideSidebar);
+
+  // Wire up chip clicks
+  sidebarEl.querySelectorAll('.wr-sb-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(chip.dataset.idx, 10);
+      const replacement = chip.dataset.replace;
+      if (replacement && visible[idx]) {
+        replaceMatch(visible[idx], replacement);
+        renderSidebar();
+      }
+    });
+  });
+
+  // Wire up issue clicks (jump to text)
+  sidebarEl.querySelectorAll('.wr-sb-issue').forEach(issue => {
+    issue.addEventListener('click', () => {
+      const idx = parseInt(issue.dataset.idx, 10);
+      if (visible[idx]) {
+        const rect = issue.getBoundingClientRect();
+        showFixCard(visible[idx], rect);
+      }
+    });
+  });
 }
 
 init();
