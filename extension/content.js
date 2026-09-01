@@ -329,6 +329,8 @@ function ensureShadowHost() {
   const style = document.createElement('style');
   style.textContent = STYLES;
   shadowRoot.appendChild(style);
+  // Listen for clicks inside Shadow DOM (highlight clicks, chips, etc.)
+  shadowRoot.addEventListener('click', onHighlightClick);
   return host;
 }
 
@@ -677,11 +679,12 @@ function replaceSelection(_originalText, replacement) {
 // directly in DOM text nodes. This is more robust on ProseMirror.
 
 function createHighlightsContainer() {
-  if (highlightsContainer && document.body.contains(highlightsContainer)) return;
+  if (highlightsContainer && shadowRoot && shadowRoot.contains(highlightsContainer)) return;
+  ensureShadowHost();
   highlightsContainer = document.createElement('div');
   highlightsContainer.id = 'wr-highlights';
   highlightsContainer.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;pointer-events:none;z-index:2147483647;overflow:visible;';
-  document.body.appendChild(highlightsContainer);
+  shadowRoot.appendChild(highlightsContainer);
 }
 
 function removeHighlightsContainer() {
@@ -858,13 +861,24 @@ function renderTextareaHighlights() {
 }
 
 function onHighlightClick(e) {
+  // This handler is on shadowRoot, so e.target is the actual highlight element
   const hl = e.target.closest('.wr-highlight');
-  if (!hl) { hideFixCard(); return; }
+  if (!hl) return;
+  e.stopPropagation();
   const offset = parseInt(hl.dataset.matchOffset, 10);
   const match = currentMatches.find(m => m.offset === offset);
   if (!match) return;
   const rect = hl.getBoundingClientRect();
   showFixCard(match, rect);
+}
+
+/** Dismiss fix card when clicking outside the shadow DOM */
+function onDocumentClick(e) {
+  if (!fixCardEl) return;
+  // If click is outside the shadow DOM, dismiss
+  if (!e.target.closest || !e.target.closest('#writeright-shadow-host')) {
+    hideFixCard();
+  }
 }
 
 // ─── Grammar check ──────────────────────────────────────────────
@@ -1241,7 +1255,7 @@ async function init() {
   document.addEventListener('keydown', onDocKeyActivity, true);
   document.addEventListener('keyup', onDocKeyActivity, true);
   document.addEventListener('selectionchange', onSelectionChange);
-  document.addEventListener('click', onHighlightClick);
+  document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onKeyDown, true);
   document.addEventListener('dblclick', onDoubleClick);
   window.addEventListener('resize', onResize);
