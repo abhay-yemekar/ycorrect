@@ -1,5 +1,5 @@
 /**
- * yCorrect — main application entry point.
+ * WriteRight — main application entry point.
  *
  * Initializes all modules and wires up the editor input pipeline.
  */

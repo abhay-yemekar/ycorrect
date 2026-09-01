@@ -150,7 +150,7 @@ describe('static files', () => {
     const res = await fetch(`${base}/`);
     assert.equal(res.status, 200);
     assert.match(res.headers.get('content-type'), /text\/html/);
-    assert.match(await res.text(), /yCorrect/);
+    assert.match(await res.text(), /WriteRight/);
   });
 
   test('frontend modules are served', async () => {

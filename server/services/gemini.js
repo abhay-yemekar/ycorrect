@@ -98,7 +98,7 @@ function goalsLine(goals) {
  */
 export async function paraphrase(text, mode, temperature, goals) {
   const prompt =
-    `You are yCorrect, a precise writing assistant. ${goalsLine(goals)} ` +
+    `You are WriteRight, a precise writing assistant. ${goalsLine(goals)} ` +
     `Return only the improved text, with no quotes, preamble, markdown, or explanation. ` +
     `Task: ${mode}. Preserve the user meaning and do not invent facts.\n\nText:\n${text}`;
   return generate(prompt, temperature);
@@ -121,7 +121,7 @@ const SUMMARIZE_LENGTH = {
 
 export async function summarize(text, style, length) {
   const prompt =
-    `You are yCorrect. Summarize the following text. ` +
+    `You are WriteRight. Summarize the following text. ` +
     `${SUMMARIZE_STYLE[style] || SUMMARIZE_STYLE.paragraph} ` +
     `${SUMMARIZE_LENGTH[length] || ''} Preserve the key facts. Do not invent information. Output only the summary.\n\nText:\n${text}`;
   return generate(prompt, 0.3);

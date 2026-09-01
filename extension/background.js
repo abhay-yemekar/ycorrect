@@ -1,5 +1,5 @@
 /**
- * yCorrect extension — background service worker.
+ * WriteRight extension — background service worker.
  *
  * Handles two paths:
  * 1. Context-menu item → POST to /api/ai → open result popup (legacy v0.2 path)
@@ -51,7 +51,7 @@ async function improveSelection(text) {
         if (data && data.error) message = data.error;
       } catch { /* non-JSON body */ }
       if (res.status === 429) message = 'Rate limited — give it a moment and retry.';
-      if (!message.includes('yCorrect')) message = `${base} — ${message}`;
+      if (!message.includes('WriteRight')) message = `${base} — ${message}`;
       openResult({ error: message });
       return;
     }
@@ -60,7 +60,7 @@ async function improveSelection(text) {
     openResult({ original: text, suggestion: typeof data.text === 'string' ? data.text : '' });
   } catch {
     openResult({
-      error: `Could not reach yCorrect at ${base}. Start the server (npm start) or fix the URL in the extension options.`,
+      error: `Could not reach WriteRight at ${base}. Start the server (npm start) or fix the URL in the extension options.`,
     });
   }
 }
@@ -68,7 +68,7 @@ async function improveSelection(text) {
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: 'ycorrect',
-    title: 'Improve with yCorrect',
+    title: 'Improve with WriteRight',
     contexts: ['selection'],
   });
 });

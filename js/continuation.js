@@ -29,7 +29,7 @@ function buildContinuationPrompt(text) {
     ? lastParagraph.slice(-MAX_CONTEXT)
     : lastParagraph;
 
-  return `You are yCorrect, a writing assistant. Continue the user's text naturally with 1-2 sentences. Do not repeat what they wrote. Do not add quotes, markdown, or explanation. Output ONLY the continuation text.\n\nText:\n${context}`;
+  return `You are WriteRight, a writing assistant. Continue the user's text naturally with 1-2 sentences. Do not repeat what they wrote. Do not add quotes, markdown, or explanation. Output ONLY the continuation text.\n\nText:\n${context}`;
 }
 
 /**

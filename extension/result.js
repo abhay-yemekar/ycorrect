@@ -33,7 +33,7 @@ function renderResult(original, suggestion) {
 
 chrome.storage.session.get({ result: null }).then(({ result }) => {
   if (!result) {
-    renderError('Nothing to show — open this from the "Improve with yCorrect" menu item.');
+    renderError('Nothing to show — open this from the "Improve with WriteRight" menu item.');
     return;
   }
   if (result.error) {

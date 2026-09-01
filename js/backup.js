@@ -4,7 +4,7 @@
  * Export produces a single .json file; Import merges a backup into the
  * library without overwriting anything already stored (collisions are
  * admitted under fresh ids, suffixed "(imported)"). This is what keeps
- * yCorrect data from being trapped in one browser profile.
+ * WriteRight data from being trapped in one browser profile.
  */
 
 import { $, notify, download, sanitizeFilename } from './utils.js';
@@ -28,7 +28,7 @@ async function importBackup(file) {
   }
 
   if (!parsed || (!Array.isArray(parsed.documents) && !Array.isArray(parsed))) {
-    notify('Import failed — not a yCorrect backup file');
+    notify('Import failed — not a WriteRight backup file');
     return;
   }
   if (parsed.format && parsed.format !== 'ycorrect-backup') {

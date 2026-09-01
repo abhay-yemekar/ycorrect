@@ -52,7 +52,7 @@ function exportHtml() {
 </head>
 <body>
   <h1>${doc.name}</h1>
-  <div class="meta">Exported from yCorrect · ${new Date().toLocaleDateString()}</div>
+  <div class="meta">Exported from WriteRight · ${new Date().toLocaleDateString()}</div>
   <pre style="white-space: pre-wrap; font-family: inherit;">${editor.value.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
 </body>
 </html>`;

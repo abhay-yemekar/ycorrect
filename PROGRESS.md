@@ -1,3 +1,28 @@
+## Session 2026-09-01 — Phase 1: Fix All Critical Bugs + Rebrand
+
+**Goal:** Make the project consistently branded as WriteRight, fix broken grammar rules, and add 40+ common misspelling rules.
+
+**Done:**
+
+### Rebranding
+- All files now say "WriteRight" consistently: manifest.json, popup.html, options.html, index.html, background.js, server banner, gemini prompts, app.js, continuation.js, export.js, backup.js
+- Test assertion updated to match WriteRight branding
+
+### Content.js Fix
+- Moved spinner/toast functions BEFORE init() call (was appended after init, causing structural issues)
+
+### Grammar Rules Overhaul
+- Replaced extraRulesData.json with 76 clean rules (was 53 with broken patterns)
+- Fixed double-negative-1 pattern to match non-adjacent negatives ("dont...nothing")
+- Fixed replacement function bug: was using new Function("m", "return " + rep) which evaluated suggestion strings as JS code
+- Removed broken rules: than-then (false positives), affect-effect (false positives), preposition-at-end (too aggressive), could-of-2 (typo in rule itself)
+- Added 40+ common misspelling rules: teh, adn, taht, thier, hte, recieve, seperate, occurence, definate, accomodate, untill, goverment, enviroment, managment, devlopment, imediately, neccessary, occurance, millenium, mispell, calender, professer, comming, begining, truely, arguement, embarass, independant, maintainance, refrence, restaraunt, sieze, supersede, threshold, vaccum, weild
+- Total: 76 extra rules + 14 built-in = 90 total grammar rules
+
+**Verification:** npm run lint clean · npm test 120/120 pass · zero runtime deps
+
+---
+
 ## Session 2026-08-30 (Part 2) - Complete Remaining Phases
 
 **Done:**

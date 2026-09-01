@@ -1,5 +1,5 @@
 /**
- * yCorrect server — application wiring and entry point.
+ * WriteRight server — application wiring and entry point.
  *
  * Exports createServer() / startServer() so the full middleware + routes
  * stack can be booted on an ephemeral port by the test suite. When run
@@ -193,7 +193,7 @@ export function startServer(port = Number(process.env.PORT || 3000)) {
     const local = `http://localhost:${port}`;
 
     // Build a properly aligned box
-    const title = '           yCorrect server';
+    const title = '           WriteRight server';
     const rows = [
       `Local:  ${local}`,
       `AI:     ${aiStatus}`,
@@ -211,7 +211,7 @@ export function startServer(port = Number(process.env.PORT || 3000)) {
       '  \u2514' + border + '\u2518',
       '',
     ].join('\n'));
-    console.log(`yCorrect running at http://localhost:${port}`);
+    console.log(`WriteRight running at http://localhost:${port}`);
   });
 
   return server;

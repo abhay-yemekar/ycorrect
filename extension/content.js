@@ -1203,7 +1203,8 @@ async function init() {
   }
 }
 
-init();// --- Loading spinner ---
+// --- Loading spinner ---
+// --- Loading spinner ---
 function showSpinner() {
   ensureShadowHost();
   if (!grammarSpinnerEl) {
@@ -1231,4 +1232,4 @@ function showToast(msg, type) {
   toastTimer = setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
 }
 
-
+init();

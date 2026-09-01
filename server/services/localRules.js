@@ -302,7 +302,7 @@ function loadExtraRules() {
         id: r[0],
         pattern: new RegExp(pat, r[2]),
         message: r[3],
-        replacement: rep ? new Function("m", "return " + rep) : null,
+        replacement: rep ? function() { return rep; } : null,
         category: r[5],
       };
     });
