@@ -1,3 +1,24 @@
+## Session 2026-09-01 (Part 3) — Fix All Button + Extension Underlines
+
+**Goal:** Fix the broken Fix All button and make extension underlines work on ChatGPT.
+
+### Fix All High-Confidence Issues Button
+- The button was rendered in renderIssuesPanel() but initGrammarPanel() never wired up a click handler
+- Added fixAllHighConfidence() function: collects all issues with replacements, sorts by offset descending, applies them from end to start so offsets stay valid
+- Added click delegation for #fixAllBtn in the pane event listener
+
+### Extension Underlines Rewrite
+- Replaced broken charMap+indexOf approach with robust findMatchRange() function
+- findMatchRange walks text nodes and creates a Range from the exact Nth occurrence (not just the first)
+- Added addHighlight() helper for consistent highlight element creation
+- Added getBoundingClientRect() fallback when getClientRects() returns empty (ProseMirror compatibility)
+- Added scroll observer (requestAnimationFrame throttled) to re-render highlights on scroll
+- Removed unused collectTextNodes, buildAlignedTextMap, rangeFromCharMap functions
+
+**Verification:** npm run lint clean · npm test 127/127 pass · zero runtime deps
+
+---
+
 ## Session 2026-09-01 (Part 2) — Phases 2-5: Extension Underlines, Tests, Sidebar
 
 **Goal:** Fix extension underlines, add API route tests, rewrite aiFeatures.js, add sidebar panel.

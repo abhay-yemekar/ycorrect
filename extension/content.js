@@ -693,74 +693,76 @@ function clearHighlights() {
 }
 
 /**
- * Collect all text nodes in a field, returning them with their cumulative
- * character positions. We also track block-level gaps (newlines) that
- * innerText would include but text nodes don't.
+ * Add a single highlight underline element at a bounding rect position.
  */
-function collectTextNodes(field) {
-  const nodes = [];
+function addHighlight(rect, match) {
+  if (rect.width < 2) return;
+  const issueType = match.rule?.issueType || 'other';
+  const hl = document.createElement('div');
+  hl.className = 'wr-highlight';
+  hl.dataset.issueType = issueType;
+  hl.dataset.matchOffset = String(match.offset);
+  hl.dataset.matchLength = String(match.length);
+  hl.style.position = 'fixed';
+  hl.style.left = `${rect.left}px`;
+  hl.style.top = `${rect.top + rect.height - 4}px`;
+  hl.style.width = `${rect.width}px`;
+  hl.style.height = '3px';
+  hl.style.pointerEvents = 'auto';
+  highlightsContainer.appendChild(hl);
+}
+
+/**
+ * Find a DOM Range for a grammar match by walking text nodes.
+ * This is more robust than charMap.indexOf because it finds the exact
+ * Nth occurrence of the error text, not just the first.
+ */
+function findMatchRange(field, match) {
+  const text = getFieldText();
+  const target = text.slice(match.offset, match.offset + match.length);
+  if (!target) return null;
+
+  // Collect all text nodes with their cumulative positions
+  const textNodes = [];
+  let cumulative = 0;
   const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, null);
   let node;
   while ((node = walker.nextNode())) {
-    const text = node.textContent;
-    if (text.length > 0) {
-      nodes.push({ node, text, length: text.length });
-    }
+    textNodes.push({ node, start: cumulative, length: node.textContent.length });
+    cumulative += node.textContent.length;
   }
-  return nodes;
-}
 
-/**
- * Build a "innerText-like" string from text nodes + block gaps,
- * and a map from each character in that string to its DOM position.
- *
- * We detect block gaps by checking if consecutive text nodes are in
- * different block elements (p, div, li, etc.).
- */
-function buildAlignedTextMap(field) {
-  const nodes = collectTextNodes(field);
-  if (nodes.length === 0) return { text: '', charMap: [] };
+  if (cumulative === 0) return null;
 
-  const charMap = [];
-  let text = '';
+  const matchEnd = match.offset + match.length;
+  if (match.offset < 0 || matchEnd > cumulative) return null;
 
-  for (let i = 0; i < nodes.length; i++) {
-    const { node, length } = nodes[i];
-    for (let j = 0; j < length; j++) {
-      text += node.textContent[j];
-      charMap.push({ node, offset: j });
+  // Find the text nodes that contain the start and end of the match
+  let startNode = null, startOffset = 0;
+  let endNode = null, endOffset = 0;
+
+  for (const tn of textNodes) {
+    if (!startNode && tn.start + tn.length > match.offset) {
+      startNode = tn.node;
+      startOffset = match.offset - tn.start;
+    }
+    if (tn.start < matchEnd && tn.start + tn.length >= matchEnd) {
+      endNode = tn.node;
+      endOffset = matchEnd - tn.start;
     }
   }
 
-  return { text, charMap };
-}
+  if (!startNode || !endNode) return null;
 
-/**
- * Create a Range from charMap positions.
- */
-function rangeFromCharMap(charMap, startIdx, length) {
-  if (startIdx < 0 || startIdx + length > charMap.length) return null;
-
-  // Find first non-gap char
-  let startEntry = null;
-  for (let i = startIdx; i < startIdx + length; i++) {
-    if (!charMap[i].isGap) { startEntry = charMap[i]; break; }
+  try {
+    const range = document.createRange();
+    range.setStart(startNode, startOffset);
+    range.setEnd(endNode, endOffset);
+    return range;
+  } catch {
+    return null;
   }
-  // Find last non-gap char
-  let endEntry = null;
-  for (let i = startIdx + length - 1; i >= startIdx; i--) {
-    if (!charMap[i].isGap) { endEntry = charMap[i]; break; }
-  }
-
-  if (!startEntry || !endEntry) return null;
-
-  const range = document.createRange();
-  range.setStart(startEntry.node, startEntry.offset);
-  range.setEnd(endEntry.node, endEntry.offset + 1);
-  return range;
-}
-
-function renderHighlights() {
+}function renderHighlights() {
   clearHighlights();
   if (!activeField) return;
 
@@ -772,40 +774,25 @@ function renderHighlights() {
 
   createHighlightsContainer();
 
-  const { text: alignedText, charMap } = buildAlignedTextMap(activeField);
   const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
 
   for (const match of visible) {
-    const searchText = alignedText.slice(match.offset, match.offset + match.length);
-    if (!searchText) continue;
-
-    // Find this text in the aligned text (handle potential duplicates)
-    const foundIdx = alignedText.indexOf(searchText, 0);
-    if (foundIdx === -1) continue;
-
-    const range = rangeFromCharMap(charMap, foundIdx, searchText.length);
+    const range = findMatchRange(activeField, match);
     if (!range) continue;
 
     const rects = range.getClientRects();
-    if (!rects || rects.length === 0) continue;
-
-    const issueType = match.rule?.issueType || 'other';
+    if (!rects || rects.length === 0) {
+      // Fallback: try bounding rect of the whole range
+      const br = range.getBoundingClientRect();
+      if (br && br.width > 0) {
+        addHighlight(br, match);
+      }
+      range.detach();
+      continue;
+    }
 
     for (const rect of rects) {
-      if (rect.width < 2) continue;
-
-      const hl = document.createElement('div');
-      hl.className = 'wr-highlight';
-      hl.dataset.issueType = issueType;
-      hl.dataset.matchOffset = String(match.offset);
-      hl.dataset.matchLength = String(match.length);
-      hl.style.position = 'fixed';
-      hl.style.left = `${rect.left}px`;
-      hl.style.top = `${rect.top + rect.height - 4}px`;
-      hl.style.width = `${rect.width}px`;
-      hl.style.height = '3px';
-      hl.style.pointerEvents = 'auto';
-      highlightsContainer.appendChild(hl);
+      addHighlight(rect, match);
     }
 
     range.detach();
@@ -1224,6 +1211,15 @@ function onResize() {
   if (currentMatches.length > 0 && activeField) renderHighlights();
 }
 
+let scrollRaf = null;
+function onScroll() {
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = null;
+    if (currentMatches.length > 0 && activeField) renderHighlights();
+  });
+}
+
 // ─── Init ───────────────────────────────────────────────────────
 // --- Keyboard shortcuts ---
 function onKeyDown(e) {
@@ -1249,6 +1245,7 @@ async function init() {
   document.addEventListener('keydown', onKeyDown, true);
   document.addEventListener('dblclick', onDoubleClick);
   window.addEventListener('resize', onResize);
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true });
   setupObserver();
 
   if (document.activeElement) {

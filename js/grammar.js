@@ -275,6 +275,38 @@ function renderIssuesPanel() {
   }).join('');
 }
 
+// ─── Fix all high-confidence issues ─────────────────────────────
+
+/**
+ * Apply all replacements where at least one replacement exists (high
+ * confidence). Processes from highest offset to lowest so earlier offsets
+ * remain valid after each replacement.
+ */
+function fixAllHighConfidence() {
+  const eligible = issues
+    .map((issue, i) => ({ issue, idx: i, replacement: (issue.replacements || [])[0]?.value }))
+    .filter(e => e.replacement && !getIgnoredKeys().includes(issueKey(e.issue)));
+
+  if (!eligible.length) {
+    notify('No high-confidence issues to fix.');
+    return;
+  }
+
+  pushUndoState('Fix all issues');
+
+  // Sort by offset descending so replacements don't shift later offsets
+  eligible.sort((a, b) => b.issue.offset - a.issue.offset);
+
+  const editor = getEditor();
+  let text = editor.value;
+  for (const { issue, replacement } of eligible) {
+    text = text.slice(0, issue.offset) + replacement + text.slice(issue.offset + issue.length);
+  }
+
+  replaceAt(0, editor.value.length, text);
+  notify(`Applied ${eligible.length} fix${eligible.length > 1 ? 'es' : ''}`);
+}
+
 // ─── Panel event delegation ───────────────────────────────────────
 
 export function initGrammarPanel() {
@@ -301,6 +333,13 @@ export function initGrammarPanel() {
   if (!pane) return;
 
   pane.addEventListener('click', (e) => {
+    // Fix-all button: apply all high-confidence replacements at once
+    const fixAllBtn = e.target.closest('#fixAllBtn');
+    if (fixAllBtn) {
+      fixAllHighConfidence();
+      return;
+    }
+
     // Replacement chip click — apply that specific replacement
     const chip = e.target.closest('.issue-chip');
     if (chip) {
