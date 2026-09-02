@@ -38,6 +38,7 @@ const ignoreSet = new Set();
 let grammarSpinnerEl = null;
 let toastTimer = null;
 let sidebarEl = null;
+let _lastCheckedText = '';
 
 // ─── Shadow DOM styles ─────────────────────────────────────────
 const STYLES = `
@@ -720,51 +721,113 @@ function addHighlight(rect, match) {
  * This is more robust than charMap.indexOf because it finds the exact
  * Nth occurrence of the error text, not just the first.
  */
-function findMatchRange(field, match) {
-  const text = getFieldText();
-  const target = text.slice(match.offset, match.offset + match.length);
-  if (!target) return null;
 
-  // Collect all text nodes with their cumulative positions
-  const textNodes = [];
+/**
+ * Collect all text nodes with their cumulative character offsets.
+ * Returns { nodes: [{ node, start, length }], fullText: string }.
+ */
+function collectTextNodes(field) {
+  const nodes = [];
   let cumulative = 0;
   const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, null);
   let node;
   while ((node = walker.nextNode())) {
-    textNodes.push({ node, start: cumulative, length: node.textContent.length });
+    nodes.push({ node, start: cumulative, length: node.textContent.length });
     cumulative += node.textContent.length;
   }
+  const fullText = nodes.map(n => n.node.textContent).join('');
+  return { nodes, fullText };
+}
 
-  if (cumulative === 0) return null;
-
-  const matchEnd = match.offset + match.length;
-  if (match.offset < 0 || matchEnd > cumulative) return null;
-
-  // Find the text nodes that contain the start and end of the match
-  let startNode = null, startOffset = 0;
-  let endNode = null, endOffset = 0;
-
+/**
+ * Build a DOM Range from a known start/end position across text nodes.
+ */
+function buildRange(textNodes, start, end) {
+  let startNode = null, startOff = 0;
+  let endNode = null, endOff = 0;
   for (const tn of textNodes) {
-    if (!startNode && tn.start + tn.length > match.offset) {
+    if (!startNode && tn.start + tn.length > start) {
       startNode = tn.node;
-      startOffset = match.offset - tn.start;
+      startOff = start - tn.start;
     }
-    if (tn.start < matchEnd && tn.start + tn.length >= matchEnd) {
+    if (tn.start < end && tn.start + tn.length >= end) {
       endNode = tn.node;
-      endOffset = matchEnd - tn.start;
+      endOff = end - tn.start;
     }
   }
-
   if (!startNode || !endNode) return null;
-
   try {
     const range = document.createRange();
-    range.setStart(startNode, startOffset);
-    range.setEnd(endNode, endOffset);
+    range.setStart(startNode, startOff);
+    range.setEnd(endNode, endOff);
     return range;
   } catch {
     return null;
   }
+}
+
+function findMatchRange(field, match, currentText, textNodes) {
+  // If we have the current text and text nodes, use them for fast lookup
+  const txt = currentText || getFieldText();
+  const target = txt.slice(match.offset, match.offset + match.length);
+  if (!target) return null;
+
+  const nodes = textNodes || collectTextNodes(field).nodes;
+  const totalLen = nodes.reduce((sum, n) => sum + n.length, 0);
+  if (totalLen === 0) return null;
+
+  const matchEnd = match.offset + match.length;
+  if (match.offset >= 0 && matchEnd <= totalLen) {
+    // Verify the text at this offset matches what the server returned
+    const slice = txt.slice(match.offset, matchEnd);
+    if (slice === target) {
+      const range = buildRange(nodes, match.offset, matchEnd);
+      if (range) return range;
+    }
+  }
+
+  // Fuzzy fallback: search for the target text in the current DOM text
+  // (handles cases where offsets shifted due to React re-render)
+  // 1. Try single-node match first (fast path)
+  for (let i = 0; i < nodes.length; i++) {
+    const nodeText = nodes[i].node.textContent;
+    const idx = nodeText.indexOf(target);
+    if (idx >= 0) {
+      const range = buildRange(nodes, nodes[i].start + idx, nodes[i].start + idx + target.length);
+      if (range) return range;
+    }
+  }
+  // 2. Cross-node search: concatenate adjacent node texts and search
+  for (let i = 0; i < nodes.length - 1; i++) {
+    let combined = nodes[i].node.textContent;
+    for (let j = i + 1; j < Math.min(i + 5, nodes.length); j++) {
+      combined += nodes[j].node.textContent;
+      const idx = combined.indexOf(target);
+      if (idx >= 0) {
+        const range = buildRange(nodes, nodes[i].start + idx, nodes[i].start + idx + target.length);
+        if (range) return range;
+      }
+    }
+  }
+  // 3. Strip invisible chars (zero-width spaces, soft hyphens) and retry
+  const strip = (s) => s.replace(/[\u200B-\u200F\u2028-\u202F\uFEFF\u00AD]/g, '');
+  const cleanTarget = strip(target);
+  if (cleanTarget && cleanTarget !== target) {
+    const cleanFull = strip(txt);
+    const idx = cleanFull.indexOf(cleanTarget);
+    if (idx >= 0) {
+      // Map back to original offset: count how many invisible chars precede idx
+      let origStart = 0, cleanCount = 0;
+      for (let c = 0; c < txt.length && cleanCount < idx; c++) {
+        if (cleanFull[cleanCount] === txt[c]) cleanCount++;
+        origStart = c + 1;
+      }
+      const origEnd = origStart + target.length;
+      const range = buildRange(nodes, origStart, origEnd);
+      if (range) return range;
+    }
+  }
+  return null;
 }function renderHighlights() {
   clearHighlights();
   if (!activeField) return;
@@ -778,14 +841,23 @@ function findMatchRange(field, match) {
   createHighlightsContainer();
 
   const visible = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message));
+  if (visible.length === 0) return;
+
+  // Snapshot text and text nodes NOW so offsets stay in sync
+  const { nodes: textNodes, fullText: currentText } = collectTextNodes(activeField);
+
+  // If text changed since the grammar check, skip highlights until next check
+  // (prevents stale offsets from React/ProseMirror re-renders)
+  if (_lastCheckedText && currentText.trim() !== _lastCheckedText.trim()) {
+    return;
+  }
 
   for (const match of visible) {
-    const range = findMatchRange(activeField, match);
+    const range = findMatchRange(activeField, match, currentText, textNodes);
     if (!range) continue;
 
     const rects = range.getClientRects();
     if (!rects || rects.length === 0) {
-      // Fallback: try bounding rect of the whole range
       const br = range.getBoundingClientRect();
       if (br && br.width > 0) {
         addHighlight(br, match);
@@ -885,6 +957,7 @@ function onDocumentClick(e) {
 async function runGrammarCheck() {
   showSpinner();
   const text = getFieldText();
+  _lastCheckedText = text;
   if (!text || text.trim().length < 3) {
     currentMatches = [];
     clearHighlights();

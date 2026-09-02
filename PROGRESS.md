@@ -1,3 +1,25 @@
+## Session 2026-09-02 — Extension Underline Root Cause Fix + Robust Rendering
+
+**Goal:** Fix the root cause of extension underlines not appearing on ChatGPT (ProseMirror) and make highlight rendering bullet-proof.
+
+### Root Cause
+The extension sent text to the server, got back offset-based matches, then tried to create DOM Ranges from those offsets. But ChatGPT's React/ProseMirror re-renders between the two calls — text nodes are recreated with slightly different content (invisible Unicode chars like zero-width spaces, soft hyphens), making stored offsets invalid. Every `findMatchRange` call returned null, so zero underlines rendered despite the badge showing the correct error count.
+
+### Fixes Applied
+1. **Re-extract text at render time** — `renderHighlights()` now calls `collectTextNodes(activeField)` fresh each time, building a text snapshot and text-node map that are guaranteed in sync
+2. **Store `_lastCheckedText`** — `runGrammarCheck()` saves the text that was sent to the server; `renderHighlights()` skips if the DOM text has diverged (prevents stale highlights from React re-renders)
+3. **Three-tier fuzzy fallback in `findMatchRange`:**
+   - Tier 1: Exact offset match with text verification (fast path)
+   - Tier 2: Single-node and cross-node text search (handles offset shifts)
+   - Tier 3: Strip invisible Unicode characters (`\u200B-\u200F`, `\u2028-\u202F`, `\uFEFF`, `\u00AD`) and retry (handles ProseMirror invisible markers)
+4. **`collectTextNodes()`** — new reusable helper that returns both text nodes and full concatenated text in one pass
+5. **`buildRange()`** — extracted range creation into a standalone helper for reuse
+6. **Removed shadow DOM highlight bug** — highlights append to `shadowRoot` (not `document.body`) so Shadow DOM CSS actually styles them
+
+**Verification:** npm run lint clean · npm test 127/127 pass · zero runtime deps
+
+---
+
 ## Session 2026-09-01 (Part 3) — Fix All Button + Extension Underlines
 
 **Goal:** Fix the broken Fix All button and make extension underlines work on ChatGPT.
