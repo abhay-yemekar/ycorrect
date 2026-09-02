@@ -203,7 +203,9 @@ export function showPopover(idx, rect) {
         ).join('')}</div>`
       : '') +
     `<div class="pop-actions">` +
-      `<button class="btn primary small" id="popApply">Apply</button>` +
+      (replacements.length
+        ? `<button class="btn primary small" id="popApply">Apply</button>`
+        : `<span style="color:#718096;font-size:12px;font-style:italic">No auto-fix — review suggestion above</span>`) +
       `<button class="btn small" id="popIgnore">Ignore</button>` +
     `</div>`;
 

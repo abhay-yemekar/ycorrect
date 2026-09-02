@@ -767,7 +767,6 @@ function buildRange(textNodes, start, end) {
 }
 
 function findMatchRange(field, match, currentText, textNodes) {
-  // If we have the current text and text nodes, use them for fast lookup
   const txt = currentText || getFieldText();
   const target = txt.slice(match.offset, match.offset + match.length);
   if (!target) return null;
@@ -777,8 +776,9 @@ function findMatchRange(field, match, currentText, textNodes) {
   if (totalLen === 0) return null;
 
   const matchEnd = match.offset + match.length;
+
+  // Tier 1: Exact offset match with text verification
   if (match.offset >= 0 && matchEnd <= totalLen) {
-    // Verify the text at this offset matches what the server returned
     const slice = txt.slice(match.offset, matchEnd);
     if (slice === target) {
       const range = buildRange(nodes, match.offset, matchEnd);
@@ -786,9 +786,7 @@ function findMatchRange(field, match, currentText, textNodes) {
     }
   }
 
-  // Fuzzy fallback: search for the target text in the current DOM text
-  // (handles cases where offsets shifted due to React re-render)
-  // 1. Try single-node match first (fast path)
+  // Tier 2: Search for target text within single text nodes
   for (let i = 0; i < nodes.length; i++) {
     const nodeText = nodes[i].node.textContent;
     const idx = nodeText.indexOf(target);
@@ -797,10 +795,11 @@ function findMatchRange(field, match, currentText, textNodes) {
       if (range) return range;
     }
   }
-  // 2. Cross-node search: concatenate adjacent node texts and search
+
+  // Tier 3: Cross-node search (target spans two adjacent text nodes)
   for (let i = 0; i < nodes.length - 1; i++) {
     let combined = nodes[i].node.textContent;
-    for (let j = i + 1; j < Math.min(i + 5, nodes.length); j++) {
+    for (let j = i + 1; j < Math.min(i + 4, nodes.length); j++) {
       combined += nodes[j].node.textContent;
       const idx = combined.indexOf(target);
       if (idx >= 0) {
@@ -809,24 +808,32 @@ function findMatchRange(field, match, currentText, textNodes) {
       }
     }
   }
-  // 3. Strip invisible chars (zero-width spaces, soft hyphens) and retry
-  const strip = (s) => s.replace(/[\u200B-\u200F\u2028-\u202F\uFEFF\u00AD]/g, '');
-  const cleanTarget = strip(target);
-  if (cleanTarget && cleanTarget !== target) {
-    const cleanFull = strip(txt);
-    const idx = cleanFull.indexOf(cleanTarget);
-    if (idx >= 0) {
-      // Map back to original offset: count how many invisible chars precede idx
-      let origStart = 0, cleanCount = 0;
-      for (let c = 0; c < txt.length && cleanCount < idx; c++) {
-        if (cleanFull[cleanCount] === txt[c]) cleanCount++;
-        origStart = c + 1;
+
+  // Tier 4: Strip invisible Unicode chars and retry with correct offset mapping
+  const INV_RE = /[\u200B-\u200F\u2028-\u202F\uFEFF\u00AD]/g;
+  const cleanTarget = target.replace(INV_RE, '');
+  if (cleanTarget && cleanTarget.length > 0) {
+    const cleanFull = txt.replace(INV_RE, '');
+    const cleanIdx = cleanFull.indexOf(cleanTarget);
+    if (cleanIdx >= 0) {
+      // Map cleanText position back to original text position
+      let origPos = 0, cleanPos = 0;
+      while (origPos < txt.length && cleanPos < cleanIdx) {
+        if (!INV_RE.test(txt[origPos])) {
+          cleanPos++;
+        }
+        INV_RE.lastIndex = 0;
+        origPos++;
       }
+      const origStart = origPos;
       const origEnd = origStart + target.length;
-      const range = buildRange(nodes, origStart, origEnd);
-      if (range) return range;
+      if (origEnd <= totalLen) {          const range = buildRange(nodes, origStart, origEnd);
+        if (range) return range;
+      }
     }
   }
+
+  console.log('[WriteRight] findMatchRange FAILED for:', JSON.stringify({ target, offset: match.offset, length: match.length, totalLen, nodeCount: nodes.length, nodeTexts: nodes.map(n => n.node.textContent) }));
   return null;
 }function renderHighlights() {
   clearHighlights();
@@ -845,12 +852,6 @@ function findMatchRange(field, match, currentText, textNodes) {
 
   // Snapshot text and text nodes NOW so offsets stay in sync
   const { nodes: textNodes, fullText: currentText } = collectTextNodes(activeField);
-
-  // If text changed since the grammar check, skip highlights until next check
-  // (prevents stale offsets from React/ProseMirror re-renders)
-  if (_lastCheckedText && currentText.trim() !== _lastCheckedText.trim()) {
-    return;
-  }
 
   for (const match of visible) {
     const range = findMatchRange(activeField, match, currentText, textNodes);
@@ -970,8 +971,12 @@ async function runGrammarCheck() {
     const resp = await chrome.runtime.sendMessage({ type: 'checkGrammar', text });
     if (resp && resp.matches) {
       currentMatches = resp.matches;
+      console.log('[WriteRight] Text sent:', JSON.stringify(text));
+      console.log('[WriteRight] Matches received:', resp.matches.length, resp.matches.map(m => ({ offset: m.offset, len: m.length, msg: m.message, text: text.slice(m.offset, m.offset + m.length) })));
       clearHighlights();
       renderHighlights();
+      const hlCount = highlightsContainer ? highlightsContainer.children.length : 0;
+      console.log('[WriteRight] Highlights rendered:', hlCount);
       updateIssueCount();
       updateBadgeCount();
       if (sidebarEl && sidebarEl.style.display !== 'none') renderSidebar();
