@@ -313,6 +313,13 @@ const STYLES = `
   font-family:system-ui,-apple-system,sans-serif;
 }
 .wr-sb-chip:hover{background:#059669;color:#fff}
+.wr-sb-fixall{
+  padding:5px 12px;border-radius:6px;border:none;
+  background:#059669;color:#fff;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .1s;
+  font-family:system-ui,-apple-system,sans-serif;
+}
+.wr-sb-fixall:hover{background:#047857}
 `;
 
 let shadowRoot = null;
@@ -415,14 +422,15 @@ function updateBadgeCount() {
 function onBadgePointerDown(e) {
   e.stopPropagation();
   e.preventDefault();
-  if (toolbarEl && toolbarEl.style.display !== 'none') {
-    hideToolbar();
-    return;
+  // Click badge → toggle sidebar directly with all issues and fix buttons
+  if (sidebarEl && sidebarEl.style.display !== 'none') {
+    hideSidebar();
+  } else {
+    showSidebar();
   }
-  showToolbar();
 }
 
-function showToolbar() {
+function _showToolbar() {
   ensureShadowHost();
   if (!toolbarEl) {
     toolbarEl = document.createElement('div');
@@ -833,7 +841,6 @@ function findMatchRange(field, match, currentText, textNodes) {
     }
   }
 
-  console.log('[WriteRight] findMatchRange FAILED for:', JSON.stringify({ target, offset: match.offset, length: match.length, totalLen, nodeCount: nodes.length, nodeTexts: nodes.map(n => n.node.textContent) }));
   return null;
 }function renderHighlights() {
   clearHighlights();
@@ -971,15 +978,19 @@ async function runGrammarCheck() {
     const resp = await chrome.runtime.sendMessage({ type: 'checkGrammar', text });
     if (resp && resp.matches) {
       currentMatches = resp.matches;
-      console.log('[WriteRight] Text sent:', JSON.stringify(text));
-      console.log('[WriteRight] Matches received:', resp.matches.length, resp.matches.map(m => ({ offset: m.offset, len: m.length, msg: m.message, text: text.slice(m.offset, m.offset + m.length) })));
       clearHighlights();
       renderHighlights();
-      const hlCount = highlightsContainer ? highlightsContainer.children.length : 0;
-      console.log('[WriteRight] Highlights rendered:', hlCount);
       updateIssueCount();
       updateBadgeCount();
-      if (sidebarEl && sidebarEl.style.display !== 'none') renderSidebar();
+      // Auto-show sidebar on first grammar check that finds issues
+      const visibleCount = currentMatches.filter(m => !ignoreSet.has(m.rule?.id + '|' + m.message)).length;
+      if (visibleCount > 0 && (!sidebarEl || sidebarEl.style.display === 'none')) {
+        showSidebar();
+      } else if (visibleCount === 0 && sidebarEl && sidebarEl.style.display !== 'none') {
+        renderSidebar();
+      } else if (sidebarEl && sidebarEl.style.display !== 'none') {
+        renderSidebar();
+      }
     }
   } catch {
     showToast("Could not reach WriteRight server. Make sure npm start is running.", "error");
@@ -1405,8 +1416,10 @@ function renderSidebar() {
   let html = '<div class="wr-sb-header">' +
     '<div><div class="wr-sb-title">\u2726 WriteRight</div>' +
     '<div class="wr-sb-count">' + visible.length + ' issue' + (visible.length !== 1 ? 's' : '') + ' found</div></div>' +
+    '<div style="display:flex;gap:6px;align-items:center">' +
+    (visible.length > 0 ? '<button class="wr-sb-fixall" id="wr-sb-fixall">Fix All</button>' : '') +
     '<button class="wr-sb-close" id="wr-sb-close">\u00d7</button>' +
-    '</div>';
+    '</div></div>';
 
   html += '<div class="wr-sb-body">';
 
@@ -1444,6 +1457,21 @@ function renderSidebar() {
 
   // Wire up close button
   sidebarEl.querySelector('#wr-sb-close').addEventListener('click', hideSidebar);
+
+  // Wire up Fix All button
+  const fixAllBtn = sidebarEl.querySelector('#wr-sb-fixall');
+  if (fixAllBtn) {
+    fixAllBtn.addEventListener('click', () => {
+      const eligible = visible.filter(m => m.replacements && m.replacements.length > 0);
+      if (eligible.length === 0) return;
+      // Sort descending by offset so replacements don't shift earlier positions
+      eligible.sort((a, b) => b.offset - a.offset);
+      for (const m of eligible) {
+        replaceMatch(m, m.replacements[0].value);
+      }
+      showToast('Fixed ' + eligible.length + ' issue' + (eligible.length > 1 ? 's' : ''), 'success');
+    });
+  }
 
   // Wire up chip clicks
   sidebarEl.querySelectorAll('.wr-sb-chip').forEach(chip => {
