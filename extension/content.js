@@ -1160,7 +1160,7 @@ function hideSynonymCard() {
   if (synonymCard) { synonymCard.remove(); synonymCard = null; }
 }
 
-function onDoubleClick(e) {
+function _onDoubleClick(e) {
   if (!activeField) return;
   const text = getFieldText();
   if (!text) return;
@@ -1346,7 +1346,7 @@ async function init() {
   document.addEventListener('selectionchange', onSelectionChange);
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onKeyDown, true);
-  document.addEventListener('dblclick', onDoubleClick);
+  // Double-click synonyms disabled — was showing unwanted popup in top-left corner
   window.addEventListener('resize', onResize);
   window.addEventListener('scroll', onScroll, { passive: true, capture: true });
   setupObserver();
