@@ -1,3 +1,47 @@
+## Session 2026-09-04 — Audit remediation: Now-phase fixes (flagship polish)
+
+**Goal:** Build the top-priority items from AUDIT.md — accurate docs, branding
+consistency, extension security, and model-lifecycle awareness.
+
+**Done:**
+
+- **Defect 20 truly closed (again).** README was still claiming 114 tests / 12
+  files and 13 built-in rules despite Phase 6 saying it was fixed. Now reads
+  127 tests / 13 files, 14 built-in rules, 9 paraphrase modes, 21 js modules,
+  24 server modules; API table now documents all 11 endpoints
+  (compose, detect-ai, cite, translate, vocabulary, synonyms were missing);
+  Project Structure tree gained aiFeatures/continuation/sentenceRewrite/synonyms
+  and the newer routes + extraRulesData.json.
+- **Branding:** LICENSE copyright now says WriteRight contributors, matching the
+  product name everywhere. Package/repo stay `ycorrect` (npm + GitHub identity).
+- **Extension security (audit High):** content.js now skips password inputs and
+  credential autocomplete fields (current-password, new-password, one-time-code,
+  webauthn) plus non-text controls; `input:not([type])` was dropped from the
+  field selector in favor of explicit text-like types.
+- **Gemini model lifecycle:** .env.example and gemini.js note that
+  gemini-2.5-flash is scheduled for deprecation 2026-10-16, with migration
+  guidance.
+- **Accessibility:** grammar popover now traps Tab focus while open
+  (trapFocus from accessibility.js) and releases it on close.
+- **Accessibility:** issue underlines are now distinguishable without color
+  (red = wavy, blue = solid, yellow = dotted).
+- **Deployment model documented:** README now states the tool is
+  localhost-only and lists the four gaps (auth, HTTPS, separate demo Gemini key
+  with budget caps, shared rate-limit store) before any public demo.
+- **Ledger corrections (verified, not assumed):** defects 5 (Creative mode
+  temperature — Creative/Expand do get the hotter CREATIVE_BAND) and 8 (theme
+  listener — matchMedia change listener is live) were already fixed; their
+  ledger rows were stale. Both now marked fixed with evidence.
+
+**Verification:** `npm run check` — lint clean, 127/127 tests pass, zero
+runtime deps.
+
+**Still open (not buildable by an agent):** manual smoke pass of the extension
+in a real browser (ChatGPT, Gemini, Notion, Gmail compose, Google Docs) — the
+audit's highest-risk open item.
+
+---
+
 ## Session 2026-09-02 — Extension Underline Root Cause Fix + Robust Rendering
 
 **Goal:** Fix the root cause of extension underlines not appearing on ChatGPT (ProseMirror) and make highlight rendering bullet-proof.
@@ -495,10 +539,10 @@ path (defect 2), `crypto.randomUUID()` doc ids (3), underline-click popover
 | 2 | Programmatic edits leave overlay/stats stale | ⬜ Phase 1 |
 | 3 | Document IDs collide (`Date.now()`) | ⬜ Phase 1 |
 | 4 | Underline click never opens popover | ⬜ Phase 1 |
-| 5 | Creative mode never gets its temperature | ⬜ Phase 2 |
+| 5 | Creative mode never gets its temperature | ✅ Fixed — Creative/Expand get a hotter temperature band in server/services/modes.js (CREATIVE_BAND [0.5, 0.95]) |
 | 6 | Issue count fought over by two writers; SR announces per keystroke | ⬜ Phase 1 |
 | 7 | Dark mode flashes light on load | ⬜ Phase 3 |
-| 8 | System-preference theme listener is dead code | ⬜ Phase 3 |
+| 8 | System-preference theme listener is dead code | ✅ Fixed — js/theme.js follows prefers-color-scheme changes while no explicit choice is stored |
 | 9 | "Ignored for this document" is neither | ⬜ Phase 3 |
 | 10 | Issues not in document order | ✅ Fixed (Phase 0) |
 | 11 | Two scroll listeners, one job | ⬜ Phase 1 |
@@ -510,7 +554,7 @@ path (defect 2), `crypto.randomUUID()` doc ids (3), underline-click popover
 | 17 | CSP allows unused origins + inline script/style | ⬜ Phase 2/3 |
 | 18 | Static serving minimal (no HEAD/ETag/compression) | ⬜ Accepted limitation (local tool) |
 | 19 | Dead code: unused exports/imports/write-only state | ✅ Fixed (Phase 0, pulled forward) |
-| 20 | README counts wrong | ✅ Fixed (Phase 6) |
+| 20 | README counts wrong | ✅ Fixed (Phase 6; counts re-corrected in audit session 2026-09-04: 127 tests / 13 files, 14 built-in rules) |
 | 21 | how_to_run.md startup message / entry drift | ✅ Fixed (Phase 6) |
 | 22 | `app.js.old` still in repo root | ✅ Fixed (Phase 6) |
 | 23 | FK badge mislabelled; negative scores hidden | ⬜ Phase 3 |

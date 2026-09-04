@@ -146,6 +146,26 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 4. Right-click selected text → **Improve with yCorrect** → a popup shows the original next to the suggestion, with a Copy button
 5. Right-click the toolbar icon → **Options** to change the server URL (default `http://localhost:3000`; `localhost`/`127.0.0.1` on any port work out of the box)
 
+## Deployment
+
+This is a **localhost-only personal tool** — the server binds to `0.0.0.0` but is
+designed for a single trusted user on your own machine. There is no
+authentication, no HTTPS, and the Gemini API key lives in the server's `.env`.
+
+Before exposing it as a public demo, you need all of:
+
+1. **Authentication** — anyone who can reach the server can use the AI features
+   (and spend your Gemini quota). Add at least a shared API key.
+2. **HTTPS** — the extension's `host_permissions` are scoped to
+   `http://localhost/*` and `http://127.0.0.1/*`; a public deployment needs the
+   manifest updated and a TLS-terminating reverse proxy.
+3. **Cost controls** — use a **separate demo Gemini key** with a budget cap so a
+   public demo can't run up your bill, plus per-user rate limits.
+4. **Shared rate-limit store** — the rate limiter and synonym cache are
+   in-memory and per-process; two instances would each allow the full budget.
+
+Until then, the supported deployment is `npm start` on your own machine.
+
 ## Security
 
 - API keys stay server-side (never exposed to the browser) and are sent to Gemini as a request header, never in the URL

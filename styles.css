@@ -141,9 +141,9 @@ main { display: flex; height: calc(100vh - 62px); }
 #overlay { z-index: 2; overflow: hidden; pointer-events: none; color: var(--ink); }
 
 .u { cursor: pointer; pointer-events: auto; border-radius: 3px; padding-bottom: 1px; }
-.u-red { border-bottom: 2.5px solid var(--red); }
+.u-red { border-bottom: 2.5px wavy var(--red); }
 .u-blue { border-bottom: 2.5px solid var(--blue); }
-.u-yellow { border-bottom: 2.5px solid var(--yellow); }
+.u-yellow { border-bottom: 2.5px dotted var(--yellow); }
 .u-red:hover { background: rgba(224, 82, 82, 0.14); }
 .u-blue:hover { background: rgba(47, 128, 237, 0.13); }
 .u-yellow:hover { background: rgba(230, 162, 60, 0.14); }

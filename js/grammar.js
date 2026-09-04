@@ -8,12 +8,13 @@ import { getEditor, getOverlay, setIssues, replaceAt } from './editor.js';
 import { splitParagraphs, stitchMatches, sortMatches } from './paragraphs.js';
 import { getIgnoredKeys, ignoreIssuePermanently } from './documents.js';
 import { pushUndoState } from './shortcuts.js';
-import { announce } from './accessibility.js';
+import { announce, trapFocus } from './accessibility.js';
 
 // ─── State ────────────────────────────────────────────────────────
 
 let issues = [];
 let seq = 0;
+let popoverFocusCleanup = null;
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -179,6 +180,11 @@ export function hidePopover() {
   if (popover) {
     popover.style.display = 'none';
   }
+  // Release the focus trap so Tab moves on normally (accessibility)
+  if (popoverFocusCleanup) {
+    popoverFocusCleanup();
+    popoverFocusCleanup = null;
+  }
 }
 
 export function showPopover(idx, rect) {
@@ -231,6 +237,11 @@ export function showPopover(idx, rect) {
   popover.querySelectorAll('.pop-repl').forEach(btn => {
     btn.onclick = () => applyReplacement(idx, +btn.dataset.r);
   });
+
+  // Trap Tab focus inside the popover so keyboard users can't tab out
+  // into the page behind it (accessibility)
+  if (popoverFocusCleanup) popoverFocusCleanup();
+  popoverFocusCleanup = trapFocus(popover);
 }
 
 // ─── Issues panel ─────────────────────────────────────────────────
