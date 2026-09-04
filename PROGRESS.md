@@ -39,8 +39,9 @@ content script.
 **Verification:** `npm run check` — lint clean, 136/136 tests pass (was
 127/127; +4 packaging, +5 split), zero runtime deps.
 
-**Still open (human-only):** the extension smoke pass in a real browser, and
-the actual Chrome Web Store submission ($5 registration, review).
+**Still open (human-only):** the extension smoke pass in a real browser —
+follow `SMOKE_TEST.md` step by step — and the actual Chrome Web Store
+submission ($5 registration, review).
 
 ---
 

@@ -108,6 +108,7 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 ├── extension/             # Chrome extension (Manifest V3) — options page, result popup, split content scripts
 ├── scripts/               # Zero-dependency dev tooling (icon generator, store zip packaging)
 ├── STORE.md              # Chrome Web Store submission kit (listing draft)
+├── SMOKE_TEST.md          # Manual browser smoke-test checklist (extension)
 ├── test/                  # node:test suites (15 files, no external calls)
 ├── index.html             # Main UI (theme bootstrap inline in <head>)
 ```
