@@ -9,3 +9,4 @@ app.js.old
 .freebuff/
 .freebuff
 .venv
+dist/

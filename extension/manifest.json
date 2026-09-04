@@ -30,7 +30,13 @@
         "https://*/*"
       ],
       "js": [
-        "content.js"
+        "content-core.js",
+        "content-badge.js",
+        "content-popups.js",
+        "content-highlights.js",
+        "content-grammar.js",
+        "content-synonyms.js",
+        "content-events.js"
       ],
       "css": [],
       "run_at": "document_idle"

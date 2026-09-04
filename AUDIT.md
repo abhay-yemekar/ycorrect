@@ -12,7 +12,7 @@ All counts below were run live against the current checkout (commit `6e2f882`):
 
 | Fact | Claimed somewhere | Verified |
 |---|---|---|
-| Test count | README: 114 · PROGRESS: 120 → 127 | **127 tests across 13 files** (`node --test`, 23 suites, 0 fail) |
+| Test count | README: 114 · PROGRESS: 120 → 127 | **136 tests across 15 files** (`node --test`, 25 suites, 0 fail — updated 2026-09-04 after Later-phase work) |
 | Built-in pattern rules | README: 13 · PROGRESS: 14 | **14 built-in rules** (grep stable `id:` in `server/services/localRules.js`) |
 | Extra data-driven rules | PROGRESS: "76 extra" | **76 rules** in `server/services/extraRulesData.json` (parsed by python3) |
 | Total grammar rules | PROGRESS: "90 total" | **90 total** (14 + 76) — correct |
@@ -258,5 +258,32 @@ Phased per the project's own `PROGRESS.md` convention. Ordered by impact-vs-effo
 ect would read as a polished, credible portfolio piece with consistent branding and accurate docs. After the "Next" phase (browser verification, deployment-model documentation, popover focus trap, non-color underline indicators), it would additionally demonstrate that the owner ships verified features, not just claimed fixes, and understands the gap between a personal tool and a safely deployable service.
 
 ---
+
+*End of audit. No code changes made. Awaiting direction on which roadmap items to build.*
+---
+
+## Build status (2026-09-04 — all buildable roadmap items shipped)
+
+The three roadmap phases were executed against this audit, each committed and
+verified with `npm run check`:
+
+- **Now (committed):** README counts/tree/API table corrected (defect 20 truly
+  closed), branding resolved (LICENSE → WriteRight; package/repo stay
+  `ycorrect`), password/credential fields excluded from the extension,
+  gemini-2.5-flash deprecation (2026-10-16) documented.
+- **Next (committed):** popover focus trap, non-color underline styles,
+  deployment-model documented in README, ledger rows 5/8 corrected by
+  verification (both were already fixed).
+- **Later (committed):** item 9 verified already fixed and test-pinned;
+  item 10 — options page gains grammar toggle, per-site disable list, and
+  reset; item 11 — `scripts/package-extension.js` (pure-Node zip) +
+  `STORE.md` listing draft + hermetic zip tests; item 12 — content.js split
+  into seven parts (byte-exact, SHA-256 verified at build time, guarded by
+  five split tests). Test count is now **136 across 15 files**.
+
+**Still open (human-only, cannot be verified by an agent):**
+1. Extension smoke pass in a real browser (ChatGPT, Gemini, Notion, Gmail
+   compose, Google Docs) — including the post-split content scripts.
+2. Chrome Web Store submission (registration, screenshots, review).
 
 *End of audit. No code changes made. Awaiting direction on which roadmap items to build.*

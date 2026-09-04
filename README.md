@@ -54,7 +54,7 @@ Zero runtime dependencies — the server is raw `node:http` and the frontend is 
 
 ```bash
 npm start        # serve http://localhost:3000
-npm test         # 127 tests across 13 files (built-in node:test, no external calls)
+npm test         # 136 tests across 15 files (built-in node:test, no external calls)
 npm run lint     # ESLint 9 (dev-only dependency)
 npm run check    # lint + tests together
 ```
@@ -105,9 +105,10 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 │       ├── modes.js      # Server-side paraphrase mode map + temperature bands
 │       └── paragraphs.js # Join/split paragraph batches around LanguageTool
 │
-├── extension/             # Chrome extension (Manifest V3) — options page, result popup
-├── scripts/               # Zero-dependency dev tooling (icon generator)
-├── test/                  # node:test suites (13 files, no external calls)
+├── extension/             # Chrome extension (Manifest V3) — options page, result popup, split content scripts
+├── scripts/               # Zero-dependency dev tooling (icon generator, store zip packaging)
+├── STORE.md              # Chrome Web Store submission kit (listing draft)
+├── test/                  # node:test suites (15 files, no external calls)
 ├── index.html             # Main UI (theme bootstrap inline in <head>)
 ```
 

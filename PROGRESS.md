@@ -1,3 +1,49 @@
+## Session 2026-09-04 — Audit remediation: Later-phase (settings, packaging, content-script split)
+
+**Goal:** Build the remaining buildable roadmap items from AUDIT.md — a fuller
+extension settings page, Web Store packaging, and the no-bundler split of the
+content script.
+
+**Done:**
+
+- **Item 9 (Creative temp band) — verified already done.** `modes.js` assigns
+  Creative/Expand the hotter CREATIVE_BAND; `test/modes.test.js` pins it
+  (defect-5 regression test). No code change needed.
+- **Extension settings page (item 10).** The options page now manages the
+  grammar toggle, shows the per-site disable list as removable chips (with a
+  clear-all), and has a one-click reset-to-defaults. It writes only the
+  storage keys the popup and content script already read
+  (`serverUrl`, `grammarEnabled`, `disabledSites`), so runtime behavior is
+  unchanged — this is management UI, not new switches.
+- **Web Store packaging (item 11, buildable half).** `scripts/package-extension.js`
+  builds `dist/write-right-<version>.zip` with a pure-Node zip writer
+  (`node:zlib` only — zero dependencies, even in tooling) and validates that
+  every manifest-referenced file exists. `STORE.md` is the copy-paste listing
+  draft (name, descriptions, privacy-practice rationale, screenshot checklist)
+  plus the manual steps that can't be automated (registration, upload,
+  review). Four new hermetic tests read the zip back with a mini parser and
+  verify structure, byte-faithfulness, and compression methods.
+- **Content-script split (item 12).** The 1,539-line `extension/content.js`
+  is now seven focused files (`content-core`, `content-badge`,
+  `content-popups`, `content-highlights`, `content-grammar`,
+  `content-synonyms`, `content-events`) loaded by the manifest in order into
+  the same isolated world — semantics identical to one concatenated script.
+  The split is byte-exact: the build-time concatenation was SHA-256 verified
+  identical to the original before headers were added. `eslint.config.js`
+  gained a `scripts/**/*.js` block and a content-`*.js` block (the three
+  shared-scope rules — no-unused-vars, prefer-const, no-undef — are off for
+  the parts with a comment explaining why). Five new split tests guard the
+  arrangement: manifest order, concatenation parses, each part parses
+  standalone, no duplicate top-level declarations, exactly one `init()` call.
+
+**Verification:** `npm run check` — lint clean, 136/136 tests pass (was
+127/127; +4 packaging, +5 split), zero runtime deps.
+
+**Still open (human-only):** the extension smoke pass in a real browser, and
+the actual Chrome Web Store submission ($5 registration, review).
+
+---
+
 ## Session 2026-09-04 — Audit remediation: Now-phase fixes (flagship polish)
 
 **Goal:** Build the top-priority items from AUDIT.md — accurate docs, branding

@@ -88,12 +88,17 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: nodeGlobals },
   },
   {
+    files: ['scripts/**/*.js'],
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: nodeGlobals },
+  },
+  {
     files: ['extension/**/*.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: extensionGlobals },
   },
   {
     // Content scripts run as classic scripts in a document context.
-    files: ['extension/content.js'],
+    // (Multi-file split: manifest loads content-*.js in order into one isolated world.)
+    files: ['extension/content-*.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'script',
@@ -115,6 +120,17 @@ export default [
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
       'no-var': 'error',
+    },
+  },
+  {
+    // Must come after the global rules block to win the merge. The parts share
+    // one isolated-world scope, so 'unused' / 'never reassigned' per-file
+    // findings are false positives.
+    files: ['extension/content-*.js'],
+    rules: {
+      'no-unused-vars': 'off',
+      'prefer-const': 'off',
+      'no-undef': 'off',
     },
   },
 ];

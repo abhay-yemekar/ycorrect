@@ -1,10 +1,15 @@
 /**
- * Options page logic — persist the server URL to chrome.storage.sync.
+ * Options page logic — server URL, grammar toggle, per-site disable list,
+ * and a one-click reset. All keys (serverUrl, grammarEnabled, disabledSites)
+ * are the same ones the popup and content script already read, so nothing
+ * here changes runtime behavior — it just gives a fuller management UI.
  */
 
 const DEFAULT_SERVER = 'http://localhost:3000';
 const input = document.getElementById('serverUrl');
 const status = document.getElementById('status');
+const grammarToggle = document.getElementById('toggle-grammar');
+const siteList = document.getElementById('site-list');
 
 function flash(message) {
   status.textContent = message;
@@ -30,9 +35,52 @@ function validate(raw) {
   return { value: parsed.origin };
 }
 
+function setGrammarToggle(on) {
+  grammarToggle.classList.toggle('on', on);
+  grammarToggle.setAttribute('aria-checked', String(on));
+}
+
+/** Render the disabled-sites list as removable chips. */
+function renderSites(sites) {
+  siteList.textContent = '';
+  if (!sites || sites.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'empty';
+    empty.textContent = 'No sites disabled.';
+    siteList.appendChild(empty);
+    return;
+  }
+  for (const host of sites) {
+    const chip = document.createElement('span');
+    chip.className = 'site-chip';
+    chip.textContent = host;
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.title = 'Re-enable WriteRight on ' + host;
+    remove.addEventListener('click', async () => {
+      const data = await chrome.storage.sync.get({ disabledSites: [] });
+      const next = (data.disabledSites || []).filter(h => h !== host);
+      await chrome.storage.sync.set({ disabledSites: next });
+      renderSites(next);
+      flash('Removed ' + host);
+    });
+
+    chip.appendChild(remove);
+    siteList.appendChild(chip);
+  }
+}
+
 async function load() {
-  const stored = await chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER });
+  const stored = await chrome.storage.sync.get({
+    serverUrl: DEFAULT_SERVER,
+    grammarEnabled: true,
+    disabledSites: [],
+  });
   input.value = stored.serverUrl || DEFAULT_SERVER;
+  setGrammarToggle(stored.grammarEnabled !== false);
+  renderSites(stored.disabledSites);
 }
 
 document.getElementById('save').addEventListener('click', async () => {
@@ -46,10 +94,23 @@ document.getElementById('save').addEventListener('click', async () => {
   flash('Saved ✓');
 });
 
+grammarToggle.addEventListener('click', async () => {
+  const next = !grammarToggle.classList.contains('on');
+  setGrammarToggle(next);
+  await chrome.storage.sync.set({ grammarEnabled: next });
+  flash(next ? 'Grammar on ✓' : 'Grammar off');
+});
+
 document.getElementById('reset').addEventListener('click', async () => {
   input.value = DEFAULT_SERVER;
-  await chrome.storage.sync.set({ serverUrl: DEFAULT_SERVER });
-  flash('Saved ✓');
+  setGrammarToggle(true);
+  await chrome.storage.sync.set({
+    serverUrl: DEFAULT_SERVER,
+    grammarEnabled: true,
+    disabledSites: [],
+  });
+  renderSites([]);
+  flash('Reset to defaults ✓');
 });
 
 load();
