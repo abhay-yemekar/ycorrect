@@ -17,11 +17,45 @@ const FIELD_SELECTOR = [
   'textarea',
   'input[type="text"]',
   'input[type="search"]',
-  'input:not([type])',
+  'input[type="email"]',
+  'input[type="url"]',
+  'input[type="tel"]',
   '[contenteditable="true"]',
   '[contenteditable=""]',
   '[role="textbox"]',
 ].join(', ');
+
+// Fields to skip — password inputs must never be read or rewritten by the
+// writing assistant. Also skip any input whose autocomplete attribute signals
+// a credential field (browser password managers, banking logins, etc.).
+const SKIP_FIELDS = [
+  'input[type="password"]',
+  'input[type="number"]',
+  'input[type="hidden"]',
+  'input[type="submit"]',
+  'input[type="button"]',
+  'input[type="checkbox"]',
+  'input[type="radio"]',
+  'input[type="file"]',
+  'input[type="color"]',
+  'input[type="range"]',
+  'select',
+  'textarea[readonly]',
+  '[contenteditable="false"]',
+];
+
+function isSkipField(el) {
+  if (!el) return false;
+  // Explicit password/credential fields
+  if (el.matches && el.matches('input[type="password"]')) return true;
+  // Autocomplete attributes that signal sensitive credential fields
+  const auto = (el.getAttribute && el.getAttribute('autocomplete') || '').toLowerCase();
+  if (auto === 'current-password' || auto === 'new-password' ||
+      auto === 'one-time-code' || auto === 'webauthn') return true;
+  // Anything in the explicit skip list
+  if (el.matches && el.matches(SKIP_FIELDS.join(', '))) return true;
+  return false;
+}
 
 // ─── State ──────────────────────────────────────────────────────
 let activeField = null;
@@ -357,11 +391,15 @@ function findEditable(el) {
   if (el.closest && el.closest('#writeright-shadow-host')) return null;
   if (el.shadowRoot) return null;
 
+  // Skip password/credential fields entirely
+  if (isSkipField(el)) return null;
+
   if (el.matches && el.matches(FIELD_SELECTOR)) return el;
   if (el.isContentEditable) return el;
 
   let cur = el;
   for (let i = 0; i < 10 && cur && cur !== document.body; i++) {
+    if (isSkipField(cur)) return null;
     if (cur.isContentEditable) return cur;
     if (cur.matches && cur.matches(FIELD_SELECTOR)) return cur;
     cur = cur.parentElement;
@@ -369,7 +407,7 @@ function findEditable(el) {
 
   if (el.querySelector) {
     const child = el.querySelector(FIELD_SELECTOR);
-    if (child && child.isContentEditable) return child;
+    if (child && child.isContentEditable && !isSkipField(child)) return child;
   }
 
   return null;

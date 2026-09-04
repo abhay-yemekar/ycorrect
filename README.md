@@ -4,8 +4,8 @@ A personal, open-source Grammarly-style writing assistant. yCorrect checks gramm
 
 ## Features
 
-- **Grammar & Spelling** — Real-time checking via LanguageTool + 13 built-in pattern rules, listed in reading order, clickable underlines, per-document "ignore forever"
-- **AI Paraphrasing** — 8 modes (Standard, Fluency, Formal, Academic, Simple, Creative, Expand, Shorten) with strength control — modes are a fixed vocabulary validated server-side
+- **Grammar & Spelling** — Real-time checking via LanguageTool + 14 built-in pattern rules, listed in reading order, clickable underlines, per-document "ignore forever"
+- **AI Paraphrasing** — 9 modes (Standard, Fluency, Formal, Academic, Simple, Creative, Expand, Shorten, Humanize) with strength control — modes are a fixed vocabulary validated server-side
 - **AI Summarization** — Key sentences, bullet points, or paragraph format
 - **Tone Detection** — Live tone and formality analysis
 - **Dark Mode** — System preference detection + manual toggle
@@ -54,7 +54,7 @@ Zero runtime dependencies — the server is raw `node:http` and the frontend is 
 
 ```bash
 npm start        # serve http://localhost:3000
-npm test         # 114 tests across 12 files (built-in node:test, no external calls)
+npm test         # 127 tests across 13 files (built-in node:test, no external calls)
 npm run lint     # ESLint 9 (dev-only dependency)
 npm run check    # lint + tests together
 ```
@@ -64,7 +64,7 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 ## Project Structure
 
 ```
-├── js/                    # Frontend ES modules (17 files)
+├── js/                    # Frontend ES modules (21 files)
 │   ├── app.js            # Entry point — wires all modules
 │   ├── editor.js         # Textarea, overlay, underlines, live offset shifting
 │   ├── grammar.js        # Grammar checking, issues panel, popover
@@ -83,7 +83,7 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 │   ├── tabs.js           # ARIA tab navigation
 │   └── utils.js          # Shared helpers
 │
-├── server/                # Backend modules (17 files)
+├── server/                # Backend modules (24 files)
 │   ├── app.js            # Entry point — middleware + routes
 │   ├── static.js         # Static file server (dotfiles blocked, 400 on bad URLs)
 │   ├── middleware/
@@ -101,13 +101,13 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 │   └── services/
 │       ├── gemini.js     # Gemini client — API key sent as a header
 │       ├── languagetool.js # LanguageTool API client
-│       ├── localRules.js # 13 pattern-based grammar rules with stable ids
+│       ├── localRules.js # 14 built-in pattern rules with stable ids
 │       ├── modes.js      # Server-side paraphrase mode map + temperature bands
 │       └── paragraphs.js # Join/split paragraph batches around LanguageTool
 │
 ├── extension/             # Chrome extension (Manifest V3) — options page, result popup
 ├── scripts/               # Zero-dependency dev tooling (icon generator)
-├── test/                  # node:test suites (12 files, no external calls)
+├── test/                  # node:test suites (13 files, no external calls)
 ├── index.html             # Main UI (theme bootstrap inline in <head>)
 ```
 
@@ -115,11 +115,17 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 
 | Endpoint | Method | Rate Limit | Description |
 |----------|--------|------------|-------------|
-| `/api/health` | GET | — | Server status and AI config |
+| `/api/health` | GET | — | Server status, version, and AI config |
 | `/api/grammar` | POST | 120/min | `{text}` whole-document check, or `{paragraphs: [...]}` (max 200) for cache-aware clients; returns `{matches}` or `{paragraphMatches}` |
-| `/api/ai` | POST | 20/min | AI rewrite via Gemini — `mode` must be one of the 8 known keys |
-| `/api/summarize` | POST | 20/min | AI summarization via Gemini |
+| `/api/ai` | POST | 20/min | AI rewrite via Gemini — `mode` must be one of the 9 known keys (Standard, Fluency, Formal, Academic, Simple, Creative, Expand, Shorten, Humanize) |
+| `/api/summarize` | POST | 20/min | AI summarization via Gemini (sentences, bullets, or paragraph) |
 | `/api/tone` | POST | 20/min | Tone/formality analysis via Gemini |
+| `/api/compose` | POST | 20/min | Generative AI writing from a prompt + genre |
+| `/api/detect-ai` | POST | 20/min | AI-generated-text detection scoring (0–100) |
+| `/api/cite` | POST | 20/min | Citation generation (APA, MLA, Chicago, Harvard, IEEE, Vancouver) |
+| `/api/translate` | POST | 20/min | AI translation to 18 languages |
+| `/api/vocabulary` | POST | 20/min | Vocabulary enhancement suggestions (JSON) |
+| `/api/synonyms` | GET | 120/min | Synonym/antonym/definition lookup via DataMuse proxy (query param `?word=`) |
 
 ## Environment Variables
 

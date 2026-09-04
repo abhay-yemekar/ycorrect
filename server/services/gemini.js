@@ -18,6 +18,11 @@ export function isConfigured() {
  * Get the configured model name.
  */
 function getModel() {
+  // gemini-2.5-flash is the current recommended Flash model, but it is
+  // scheduled for deprecation on 2026-10-16 (see the note in .env.example).
+  // When it sunsets, update this fallback to the next recommended Flash model.
+  // The server reads GEMINI_MODEL from .env at startup; this default only kicks
+  // in when the env var is unset, so the project stays runnable out of the box.
   return process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 }
 
