@@ -78,15 +78,16 @@ function hideFixCard() {
 // ─── Rewrite chip ──────────────────────────────────────────────
 function showRewriteChip(sel) {
   hideRewriteChip();
-  if (!sel || sel.isCollapsed || !activeField) return;
-  const text = sel.toString().trim();
+  const target = captureSelectionTarget();
+  if (!target) return;
+  const text = target.original.trim();
   if (!text || text.length < 3) return;
 
   ensureShadowHost();
   rewriteChipEl = document.createElement('div');
   rewriteChipEl.id = 'wr-rewrite-chip';
-  const range = sel.getRangeAt(0);
-  const rect = range.getBoundingClientRect();
+  const rect = activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT'
+    ? activeField.getBoundingClientRect() : sel.getRangeAt(0).getBoundingClientRect();
   rewriteChipEl.innerHTML = '<button class="wr-rewrite-btn">\u2726 Rewrite</button>';
   rewriteChipEl.style.top = `${rect.top - 44}px`;
   rewriteChipEl.style.left = `${rect.left}px`;

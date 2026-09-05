@@ -58,3 +58,11 @@ test('sentence AI response waits for explicit review and preserves request targe
   h.run('acceptSuggestionReview()');
   assert.equal(h.context.field.value, 'The cat. Next.');
 });
+
+test('textarea selection uses field offsets including whitespace, not window selection', async () => {
+  const h = await contentHarness();
+  h.context.field = new h.Field('  the cat  ');
+  h.context.field.setSelectionRange(1, 10);
+  h.run('activeField = field');
+  assert.equal(h.run('captureSelectionTarget().original'), ' the cat ');
+});

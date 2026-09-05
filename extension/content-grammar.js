@@ -22,7 +22,6 @@ async function runGrammarCheck(force = false) {
   const requestId = ++grammarRequestId;
   grammarPending = { field, text };
   showSpinner();
-  _lastCheckedText = text;
   if (!text || text.trim().length < 3) {
     currentMatches = [];
     clearHighlights();
@@ -47,6 +46,7 @@ async function runGrammarCheck(force = false) {
       return;
     }
     if (resp && resp.matches) {
+      _lastCheckedText = text;
       grammarCompleted = { field, text };
       currentMatches = resp.matches;
       clearHighlights();

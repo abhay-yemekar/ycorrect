@@ -150,6 +150,7 @@ may replace NOT RUN with PASS/FAIL and record date, browser/version and evidence
 | Z01 | Build ZIP, extract it and load extracted directory unpacked; manifest/assets load with no errors. Automated ZIP checks now validate stored CRCs against contents and known CRC vectors. Node 18 runtime pass remains separate from local Node 24 verification. | NOT RUN |
 | O01 | Set server URL to another localhost port. Open app from popup must use that URL, consistent with health checks. Restore original URL afterward. | NOT RUN |
 | B01 | Compare README, web title, extension popup/options, context menu and store draft: all public product names are WriteRight. Repository slug, package name and YCORRECT_* keys intentionally remain compatibility identifiers. | NOT RUN |
+| U02 | Select text in textarea/input with mouse and keyboard: Rewrite appears and preserves the exact selected whitespace/range. While a changed draft is being checked, an old grammar card must refuse acceptance. | NOT RUN |
 
 Fill this in; commit it back to PROGRESS.md when complete.
 

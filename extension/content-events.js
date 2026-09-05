@@ -132,7 +132,7 @@ function stopPolling() {
 function onSelectionChange() {
   if (!siteEnabled || !activeField) return;
   const sel = window.getSelection();
-  if (sel && !sel.isCollapsed && activeField.contains(sel.anchorNode)) {
+  if (captureSelectionTarget()?.original) {
     showRewriteChip(sel);
   } else {
     hideRewriteChip();
@@ -250,6 +250,7 @@ async function init() {
   document.addEventListener('keydown', onDocKeyActivity, true);
   document.addEventListener('keyup', onDocKeyActivity, true);
   document.addEventListener('selectionchange', onSelectionChange);
+  document.addEventListener('select', onSelectionChange, true);
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onKeyDown, true);
   // Double-click synonyms disabled — was showing unwanted popup in top-left corner
