@@ -133,6 +133,15 @@ must not interfere with typing.
 
 ## 9. Verification record
 
+### Flagship regression queue (2026-09-05)
+
+These are pending human checks, not claimed outcomes. Only a human browser run
+may replace NOT RUN with PASS/FAIL and record date, browser/version and evidence.
+
+| ID | Steps / expected result | Human result |
+|---|---|---|
+| T01 | Start server and look up a word in web app; confirm live synonyms still appear. Automated tests now stub DataMuse and assert fixture contents. | NOT RUN |
+
 Fill this in; commit it back to PROGRESS.md when complete.
 
 | Date | Site/field | Badge | Underlines | Sidebar | Fix | Rewrite | Console errors? |

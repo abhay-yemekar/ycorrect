@@ -4,13 +4,15 @@
  * is tested with mocked fetch behavior via the integration test.
  */
 
-import { describe, it } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from '../server/app.js';
 
 describe('synonyms route', () => {
   let server;
   let baseUrl;
+  const realFetch = globalThis.fetch;
+  const upstreamCalls = [];
 
   const startServer = () =>
     new Promise((resolve) => {
@@ -28,9 +30,19 @@ describe('synonyms route', () => {
       else resolve();
     });
 
-  import('node:test').then(({ before, after }) => {
-    before(startServer);
-    after(stopServer);
+  before(async () => {
+    globalThis.fetch = (url, options) => {
+      const target = new URL(url);
+      if (target.origin === baseUrl) return realFetch(url, options);
+      assert.equal(target.origin, 'https://api.datamuse.com', 'unexpected external request');
+      upstreamCalls.push(target);
+      return Promise.resolve({ ok: true, json: async () => [{ word: 'greeting', defs: ['n\ta greeting'] }] });
+    };
+    await startServer();
+  });
+  after(async () => {
+    globalThis.fetch = realFetch;
+    await stopServer();
   });
 
   it('returns empty arrays for empty word', async () => {
@@ -65,6 +77,9 @@ describe('synonyms route', () => {
     assert.ok(Array.isArray(data.synonyms));
     assert.ok(Array.isArray(data.antonyms));
     assert.ok(Array.isArray(data.definitions));
+    assert.deepEqual(data.synonyms, ['greeting']);
+    assert.deepEqual(data.definitions, [{ pos: 'n', definition: 'a greeting' }]);
+    assert.equal(upstreamCalls.length, 3);
   });
 
   it('accepts words with hyphens and apostrophes', async () => {
