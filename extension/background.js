@@ -81,9 +81,10 @@ chrome.contextMenus.onClicked.addListener((info) => {
 // ─── Content-script message handlers ────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'openApp') {
-    chrome.tabs.create({ url: 'http://localhost:3000' });
-    sendResponse({ ok: true });
-    return false;
+    getServerUrl().then(url => chrome.tabs.create({ url }))
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ error: 'Could not open the configured server.' }));
+    return true;
   }
 
   if (msg.type === 'checkGrammar') {
