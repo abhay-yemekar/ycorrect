@@ -110,6 +110,7 @@ async function checkGrammar(text) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!res.ok) return { error: `Grammar check failed (HTTP ${res.status}). Try again.` };
   const data = await res.json();
@@ -122,6 +123,7 @@ async function rewrite(text, mode) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, mode: mode || 'Humanize', strength: 0.5, variant: 1 }),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!res.ok) return { error: `Rewrite failed (HTTP ${res.status}). Check server configuration and try again.` };
   const data = await res.json();

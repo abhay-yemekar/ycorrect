@@ -11,12 +11,17 @@
 
 // ─── Grammar check ──────────────────────────────────────────────
 let grammarRequestId = 0;
-async function runGrammarCheck() {
-  const requestId = ++grammarRequestId;
+let grammarPending = null;
+let grammarCompleted = null;
+async function runGrammarCheck(force = false) {
   const field = activeField;
   if (!field || !siteEnabled || !grammarEnabled) return;
-  showSpinner();
   const text = getFieldText();
+  if (!force && ((grammarPending?.field === field && grammarPending.text === text) ||
+      (grammarCompleted?.field === field && grammarCompleted.text === text))) return;
+  const requestId = ++grammarRequestId;
+  grammarPending = { field, text };
+  showSpinner();
   _lastCheckedText = text;
   if (!text || text.trim().length < 3) {
     currentMatches = [];
@@ -24,6 +29,7 @@ async function runGrammarCheck() {
     updateIssueCount();
     updateBadgeCount();
     hideSpinner();
+    grammarPending = null;
     return;
   }
 
@@ -41,6 +47,7 @@ async function runGrammarCheck() {
       return;
     }
     if (resp && resp.matches) {
+      grammarCompleted = { field, text };
       currentMatches = resp.matches;
       clearHighlights();
       renderHighlights();
@@ -59,7 +66,7 @@ async function runGrammarCheck() {
   } catch {
     showToast("Could not reach WriteRight server. Make sure npm start is running.", "error");
   } finally {
-    if (requestId === grammarRequestId) hideSpinner();
+    if (requestId === grammarRequestId) { grammarPending = null; hideSpinner(); }
   }
 }
 
@@ -90,13 +97,36 @@ function rewriteSentence(match, mode) {
 }
 
 let rewriteRequestId = 0;
+let rewriteLoadingEl = null;
+function cancelPendingRewrite() {
+  rewriteRequestId++;
+  if (rewriteLoadingEl) rewriteLoadingEl.remove();
+  rewriteLoadingEl = null;
+}
+
 async function requestReviewRewrite(target, mode) {
   if (!target) return;
+  cancelPendingRewrite();
+  dismissSuggestionReview();
   const requestId = ++rewriteRequestId;
+  ensureShadowHost();
+  rewriteLoadingEl = document.createElement('div');
+  rewriteLoadingEl.className = 'wr-toast';
+  rewriteLoadingEl.setAttribute('role', 'status');
+  rewriteLoadingEl.innerHTML = '<span>Preparing rewrite…</span><button class="wr-fix-btn">Cancel</button>';
+  rewriteLoadingEl.querySelector('button').addEventListener('click', cancelPendingRewrite);
+  shadowRoot.appendChild(rewriteLoadingEl);
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'rewrite', text: target.original, mode });
     if (requestId !== rewriteRequestId || !siteEnabled) return;
     if (resp?.error || !resp?.suggestion) return showToast(resp?.error || 'The server returned no rewrite. Try again.', 'error');
     if (resp && resp.suggestion) showSuggestionReview(target, resp.suggestion, mode + ' rewrite');
-  } catch { showToast('Could not reach WriteRight server.', 'error'); }
+  } catch {
+    if (requestId === rewriteRequestId && siteEnabled) showToast('Could not reach WriteRight server.', 'error');
+  } finally {
+    if (requestId === rewriteRequestId) {
+      if (rewriteLoadingEl) rewriteLoadingEl.remove();
+      rewriteLoadingEl = null;
+    }
+  }
 }

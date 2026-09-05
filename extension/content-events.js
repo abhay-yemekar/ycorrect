@@ -38,6 +38,8 @@ function removeScrollListeners() {
 function activateField(field) {
   if (!siteEnabled || !field || field === activeField) return;
   grammarRequestId++;
+  grammarPending = null;
+  grammarCompleted = null;
   clearHighlights();
   hideSpinner();
   activeField = field;
@@ -53,6 +55,8 @@ function activateField(field) {
 function deactivateField() {
   if (!activeField) return;
   grammarRequestId++;
+  grammarPending = null;
+  grammarCompleted = null;
   clearTimeout(debounceTimer);
   hideSpinner();
   activeField = null;
@@ -100,6 +104,7 @@ function onDocInput() {
   if (!siteEnabled || !activeField || !grammarEnabled) return;
   clearHighlights();
   currentMatches = [];
+  grammarCompleted = null;
   updateBadgeCount();
   scheduleGrammarCheck();
 }
@@ -163,7 +168,9 @@ function onSettingsChanged(changes, area) {
   if (changes.disabledSites) siteEnabled = !(changes.disabledSites.newValue || []).includes(location.hostname);
   if (changes.grammarEnabled) grammarEnabled = changes.grammarEnabled.newValue !== false;
   grammarRequestId++;
-  rewriteRequestId++;
+  grammarPending = null;
+  grammarCompleted = null;
+  cancelPendingRewrite();
   clearTimeout(debounceTimer);
   hideSpinner();
   currentMatches = [];
