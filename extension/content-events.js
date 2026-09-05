@@ -37,6 +37,9 @@ function removeScrollListeners() {
 
 function activateField(field) {
   if (!field || field === activeField) return;
+  grammarRequestId++;
+  clearHighlights();
+  hideSpinner();
   activeField = field;
   currentMatches = [];
   hideFixCard();
@@ -49,6 +52,9 @@ function activateField(field) {
 
 function deactivateField() {
   if (!activeField) return;
+  grammarRequestId++;
+  clearTimeout(debounceTimer);
+  hideSpinner();
   activeField = null;
   hideBadge();
   hideToolbar();
@@ -91,6 +97,9 @@ function onDocKeyActivity() {
 
 function onDocInput() {
   if (!activeField || !grammarEnabled) return;
+  clearHighlights();
+  currentMatches = [];
+  updateBadgeCount();
   scheduleGrammarCheck();
 }
 

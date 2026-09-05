@@ -10,7 +10,11 @@
  */
 
 // ─── Grammar check ──────────────────────────────────────────────
+let grammarRequestId = 0;
 async function runGrammarCheck() {
+  const requestId = ++grammarRequestId;
+  const field = activeField;
+  if (!field || !siteEnabled || !grammarEnabled) return;
   showSpinner();
   const text = getFieldText();
   _lastCheckedText = text;
@@ -19,11 +23,14 @@ async function runGrammarCheck() {
     clearHighlights();
     updateIssueCount();
     updateBadgeCount();
+    hideSpinner();
     return;
   }
 
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'checkGrammar', text });
+    if (requestId !== grammarRequestId || activeField !== field || !field.isConnected ||
+        !siteEnabled || !grammarEnabled || getFieldText(field) !== text) return;
     if (resp && resp.matches) {
       currentMatches = resp.matches;
       clearHighlights();
@@ -43,7 +50,7 @@ async function runGrammarCheck() {
   } catch {
     showToast("Could not reach WriteRight server. Make sure npm start is running.", "error");
   } finally {
-    hideSpinner();
+    if (requestId === grammarRequestId) hideSpinner();
   }
 }
 
