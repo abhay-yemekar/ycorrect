@@ -8,8 +8,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { inflateRawSync, crc32 } from 'node:zlib';
-import { buildZip, collectFiles, manifestReferencedFiles } from '../scripts/package-extension.js';
+import { inflateRawSync } from 'node:zlib';
+import { buildZip, collectFiles, manifestReferencedFiles, crc32 } from '../scripts/package-extension.js';
 import { fileURLToPath } from 'node:url';
 
 const EXTENSION_DIR = fileURLToPath(new URL('../extension/', import.meta.url));
@@ -43,6 +43,8 @@ function readZip(buf) {
     const comp = buf.subarray(lh, lh + compSize);
     const raw = method === 8 ? inflateRawSync(comp) : comp;
     assert.equal(raw.length, rawSize, `${name} uncompressed size`);
+    assert.equal(crc32(raw), buf.readUInt32LE(p + 16), `${name} central CRC`);
+    assert.equal(crc32(raw), buf.readUInt32LE(localOffset + 14), `${name} local CRC`);
 
     entries.set(name, { method, data: raw });
     p += 46 + nameLen + extraLen + commentLen;
@@ -52,6 +54,11 @@ function readZip(buf) {
 
 describe('extension packaging', () => {
   const outDir = mkdtempSync(join(tmpdir(), 'write-right-pack-'));
+
+  test('CRC matches independent standard vectors', () => {
+    assert.equal(crc32(Buffer.from('123456789')), 0xcbf43926);
+    assert.equal(crc32(Buffer.alloc(0)), 0);
+  });
 
   test('zip contains every manifest-referenced file and nothing is missing', () => {
     const { files } = buildZip(outDir);

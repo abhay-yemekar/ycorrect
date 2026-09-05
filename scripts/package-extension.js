@@ -12,7 +12,17 @@
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative, sep, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deflateRawSync, crc32 } from 'node:zlib';
+import { deflateRawSync } from 'node:zlib';
+
+// ZIP CRC-32 (IEEE), portable to the declared Node 18 baseline.
+export function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
 
 const EXTENSION_DIR = fileURLToPath(new URL('../extension/', import.meta.url));
 
