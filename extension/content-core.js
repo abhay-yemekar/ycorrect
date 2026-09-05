@@ -237,6 +237,8 @@ const STYLES = `
   max-height:200px;overflow-y:auto;
 }
 .wr-rewrite-actions{display:flex;gap:8px}
+.wr-review-original{white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto;margin:8px 0 12px}
+.wr-review-help{font-size:12px;margin-top:10px}
 
 /* Underline highlights */
 .wr-highlight{
@@ -423,4 +425,3 @@ function findEditable(el) {
 
   return null;
 }
-

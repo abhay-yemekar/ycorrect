@@ -141,6 +141,7 @@ may replace NOT RUN with PASS/FAIL and record date, browser/version and evidence
 | ID | Steps / expected result | Human result |
 |---|---|---|
 | T01 | Start server and look up a word in web app; confirm live synonyms still appear. Automated tests now stub DataMuse and assert fixture contents. | NOT RUN |
+| U01 | Humanize sentence, selection rewrite, grammar chip and Fix All must show original/suggestion with Accept/Reject; rejection leaves text untouched; Accept then Undo restores only reviewed edits. Switch selections/fields or type while awaiting results: stale work must not apply. Test rich formatting, React inputs, empty replacements and overlapping fixes. | NOT RUN |
 
 Fill this in; commit it back to PROGRESS.md when complete.
 

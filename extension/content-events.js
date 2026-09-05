@@ -71,6 +71,7 @@ function onFieldBlur(e) {
   const related = e.relatedTarget;
   if (related && related.closest && related.closest('#writeright-shadow-host')) return;
   setTimeout(() => {
+    if (document.activeElement === shadowRoot?.host) return;
     if (activeField && !activeField.contains(document.activeElement) &&
         document.activeElement !== activeField &&
         !activeField.matches(':focus-within')) {
@@ -300,14 +301,7 @@ function renderSidebar() {
   const fixAllBtn = sidebarEl.querySelector('#wr-sb-fixall');
   if (fixAllBtn) {
     fixAllBtn.addEventListener('click', () => {
-      const eligible = visible.filter(m => m.replacements && m.replacements.length > 0);
-      if (eligible.length === 0) return;
-      // Sort descending by offset so replacements don't shift earlier positions
-      eligible.sort((a, b) => b.offset - a.offset);
-      for (const m of eligible) {
-        replaceMatch(m, m.replacements[0].value);
-      }
-      showToast('Fixed ' + eligible.length + ' issue' + (eligible.length > 1 ? 's' : ''), 'success');
+      reviewAllMatches(visible);
     });
   }
 
@@ -317,7 +311,7 @@ function renderSidebar() {
       e.stopPropagation();
       const idx = parseInt(chip.dataset.idx, 10);
       const replacement = chip.dataset.replace;
-      if (replacement && visible[idx]) {
+      if (replacement !== undefined && visible[idx]) {
         replaceMatch(visible[idx], replacement);
         renderSidebar();
       }

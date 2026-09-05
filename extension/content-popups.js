@@ -52,7 +52,7 @@ function showFixCard(match, anchorRect) {
     const chip = e.target.closest('.wr-fix-chip');
     if (chip) {
       const replacement = chip.dataset.replace;
-      if (replacement) replaceMatch(match, replacement);
+      if (replacement !== undefined) replaceMatch(match, replacement);
       hideFixCard();
       return;
     }
@@ -95,6 +95,7 @@ function showRewriteChip(sel) {
 
   rewriteChipEl.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
+    e.preventDefault();
     const mode = getActiveMode();
     rewriteSelection(mode);
     hideRewriteChip();
@@ -106,15 +107,15 @@ function hideRewriteChip() {
 }
 
 // ─── Text helpers ──────────────────────────────────────────────
-function getFieldText() {
-  if (!activeField) return '';
-  if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
-    return activeField.value;
+function getFieldText(field = activeField) {
+  if (!field) return '';
+  if (field.tagName === 'TEXTAREA' || field.tagName === 'INPUT') {
+    return field.value;
   }
   // For contenteditable: build flat text from text nodes (no block-boundary newlines)
   // This matches what the char map produces, avoiding offset mismatches
   let result = '';
-  const walker = document.createTreeWalker(activeField, NodeFilter.SHOW_TEXT, null);
+  const walker = document.createTreeWalker(field, NodeFilter.SHOW_TEXT, null);
   let node;
   while ((node = walker.nextNode())) {
     result += node.textContent;
@@ -144,11 +145,8 @@ function setFieldText(text) {
 
 function replaceMatch(match, replacement) {
   const text = getFieldText();
-  const before = text.slice(0, match.offset);
-  const after = text.slice(match.offset + match.length);
-  setFieldText(before + replacement + after);
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => runGrammarCheck(), 300);
+  if (text !== _lastCheckedText) return showToast('Text changed. Check grammar again.', 'error');
+  showSuggestionReview(captureReviewTarget(match.offset, match.offset + match.length), replacement, 'Grammar suggestion');
 }
 
 function replaceSelection(_originalText, replacement) {
@@ -170,3 +168,169 @@ function replaceSelection(_originalText, replacement) {
   }
 }
 
+// A review owns its field, text snapshot and offsets, never the live selection.
+let pendingReview = null;
+let reviewCard = null;
+let lastReviewUndo = null;
+let undoCard = null;
+
+function captureReviewTarget(start, end, field = activeField) {
+  if (!field || !field.isConnected || isSkipField(field)) return null;
+  const before = getFieldText(field);
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || end > before.length) return null;
+  return { field, before, start, end, original: before.slice(start, end) };
+}
+
+function captureSelectionTarget() {
+  const field = activeField;
+  if (!field) return null;
+  if (field.tagName === 'TEXTAREA' || field.tagName === 'INPUT') {
+    return captureReviewTarget(field.selectionStart, field.selectionEnd);
+  }
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  if (!field.contains(range.startContainer) || !field.contains(range.endContainer)) return null;
+  const prefix = document.createRange();
+  prefix.selectNodeContents(field);
+  prefix.setEnd(range.startContainer, range.startOffset);
+  const start = prefix.toString().length;
+  return captureReviewTarget(start, start + range.toString().length);
+}
+
+function dismissSuggestionReview() {
+  if (reviewCard) reviewCard.remove();
+  reviewCard = null;
+  pendingReview = null;
+}
+
+function showSuggestionReview(target, replacement, label, edits = null) {
+  if (!target || typeof replacement !== 'string') return;
+  if (!siteEnabled || !target.field.isConnected || getFieldText(target.field) !== target.before) {
+    return showToast('Text changed. Request a new suggestion.', 'error');
+  }
+  dismissSuggestionReview();
+  ensureShadowHost();
+  pendingReview = { ...target, replacement, edits: edits || [{ start: target.start, end: target.end, replacement }] };
+  reviewCard = document.createElement('div');
+  reviewCard.id = 'wr-rewrite-result';
+  reviewCard.setAttribute('role', 'dialog');
+  reviewCard.setAttribute('aria-label', label);
+  reviewCard.innerHTML = `<div class="wr-rewrite-header">${escHtml(label)}</div>
+    <div>Original</div><div class="wr-review-original"><del>${escHtml(target.original)}</del></div>
+    <div>Suggestion</div><div class="wr-rewrite-suggestion"><ins>${escHtml(replacement)}</ins></div>
+    <div class="wr-rewrite-actions">
+      <button class="wr-fix-btn primary" data-action="accept">Accept</button>
+      <button class="wr-fix-btn" data-action="reject">Reject</button>
+    </div><div class="wr-review-help">Review before applying. Undo is available after acceptance.</div>`;
+  reviewCard.style.cssText = 'display:block;top:60px;right:16px;max-height:calc(100vh - 90px);overflow:auto;max-width:min(380px,calc(100vw - 32px))';
+  reviewCard.addEventListener('click', e => {
+    if (e.target.dataset.action === 'accept') acceptSuggestionReview();
+    if (e.target.dataset.action === 'reject') dismissSuggestionReview();
+  });
+  shadowRoot.appendChild(reviewCard);
+}
+
+function writeFieldRange(field, start, end, replacement) {
+  const before = getFieldText(field);
+  const expected = before.slice(0, start) + replacement + before.slice(end);
+  field.focus();
+  if (field.tagName === 'TEXTAREA' || field.tagName === 'INPUT') {
+    // Native setter reaches controlled inputs; dispatch input after setting it.
+    const prototype = field.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(prototype, 'value').set.call(field, expected);
+    field.setSelectionRange(start + replacement.length, start + replacement.length);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  } else if (field.isContentEditable) {
+    const range = buildRange(collectTextNodes(field).nodes, start, end);
+    if (!range) return false;
+    const sel = window.getSelection();
+    if (!sel) return false;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Let the host editor handle its own input transaction. Never replace its DOM.
+    document.execCommand('insertText', false, replacement);
+  } else return false;
+  return getFieldText(field) === expected;
+}
+
+function applyReviewEdits(field, before, edits) {
+  let expected = before;
+  const inverse = [];
+  const ordered = [...edits].sort((a, b) => a.start - b.start);
+  let previousEnd = -1;
+  let shift = 0;
+  for (const edit of ordered) {
+    if (edit.start < previousEnd || edit.end > before.length || edit.start < 0 || edit.end < edit.start) return null;
+    inverse.push({ start: edit.start + shift, end: edit.start + shift + edit.replacement.length, replacement: before.slice(edit.start, edit.end) });
+    shift += edit.replacement.length - (edit.end - edit.start);
+    previousEnd = edit.end;
+  }
+  for (const edit of ordered.reverse()) {
+    if (getFieldText(field) !== expected || !writeFieldRange(field, edit.start, edit.end, edit.replacement)) return null;
+    expected = expected.slice(0, edit.start) + edit.replacement + expected.slice(edit.end);
+  }
+  return { field, before, after: expected, edits: inverse };
+}
+
+function acceptSuggestionReview() {
+  const review = pendingReview;
+  if (!review) return false;
+  if (!siteEnabled || !review.field.isConnected || getFieldText(review.field) !== review.before) {
+    dismissSuggestionReview();
+    showToast('Text changed. Request a new suggestion.', 'error');
+    return false;
+  }
+  const undo = applyReviewEdits(review.field, review.before, review.edits);
+  dismissSuggestionReview();
+  if (!undo) {
+    showToast('The editor could not apply this change. Review the field; use its native undo if needed.', 'error');
+    return false;
+  }
+  lastReviewUndo = undo;
+  clearHighlights();
+  currentMatches = [];
+  updateBadgeCount();
+  scheduleGrammarCheck();
+  if (undoCard) undoCard.remove();
+  undoCard = document.createElement('div');
+  undoCard.className = 'wr-toast wr-toast-success';
+  undoCard.innerHTML = '<span>Suggestion applied</span><button class="wr-fix-btn" data-action="undo">Undo</button>';
+  undoCard.querySelector('button').addEventListener('click', undoSuggestionReview);
+  shadowRoot.appendChild(undoCard);
+  return true;
+}
+
+function undoSuggestionReview() {
+  const undo = lastReviewUndo;
+  if (!undo) return false;
+  if (!siteEnabled || !undo.field.isConnected || getFieldText(undo.field) !== undo.after) {
+    showToast('Text changed since acceptance. Use the editor’s undo history.', 'error');
+    return false;
+  }
+  const result = applyReviewEdits(undo.field, undo.after, undo.edits);
+  if (!result) return false;
+  lastReviewUndo = null;
+  if (undoCard) undoCard.remove();
+  undoCard = null;
+  currentMatches = [];
+  clearHighlights();
+  scheduleGrammarCheck();
+  return true;
+}
+
+function reviewAllMatches(matches) {
+  const before = getFieldText();
+  if (before !== _lastCheckedText) return showToast('Text changed. Check grammar again.', 'error');
+  const edits = [];
+  let end = -1;
+  for (const m of [...matches].sort((a, b) => a.offset - b.offset || b.length - a.length)) {
+    if (!m.replacements?.length || m.offset < end) continue;
+    edits.push({ start: m.offset, end: m.offset + m.length, replacement: m.replacements[0].value });
+    end = m.offset + m.length;
+  }
+  if (!edits.length) return;
+  let after = before;
+  for (const e of [...edits].reverse()) after = after.slice(0, e.start) + e.replacement + after.slice(e.end);
+  showSuggestionReview(captureReviewTarget(0, before.length), after, 'Review grammar fixes (overlapping alternatives omitted)', edits);
+}
