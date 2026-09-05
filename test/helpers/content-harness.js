@@ -37,6 +37,7 @@ export async function contentHarness() {
   const context = vm.createContext({
     document, window: { HTMLTextAreaElement: Field, HTMLInputElement: Field, addEventListener() {} },
     location: { hostname: 'test.invalid' }, Event: class {}, NodeFilter: { SHOW_TEXT: 4 },
+    MutationObserver: class { observe() {} },
     chrome: { storage: { sync: { get: async () => ({ disabledSites: ['test.invalid'] }) }, onChanged: { addListener() {} } }, runtime: { sendMessage: async () => ({}) } },
     setTimeout(fn) { timers.set(++timerId, fn); return timerId; }, clearTimeout(id) { timers.delete(id); },
     setInterval() { return 1; }, clearInterval() {},

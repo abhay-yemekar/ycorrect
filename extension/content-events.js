@@ -36,7 +36,7 @@ function removeScrollListeners() {
 }
 
 function activateField(field) {
-  if (!field || field === activeField) return;
+  if (!siteEnabled || !field || field === activeField) return;
   grammarRequestId++;
   clearHighlights();
   hideSpinner();
@@ -68,6 +68,7 @@ function deactivateField() {
 }
 
 function onFieldFocus(e) {
+  if (!siteEnabled) return;
   const field = findEditable(e.target);
   if (!field) return;
   activateField(field);
@@ -96,7 +97,7 @@ function onDocKeyActivity() {
 }
 
 function onDocInput() {
-  if (!activeField || !grammarEnabled) return;
+  if (!siteEnabled || !activeField || !grammarEnabled) return;
   clearHighlights();
   currentMatches = [];
   updateBadgeCount();
@@ -108,7 +109,7 @@ function startPolling() {
   stopPolling();
   lastPollText = getFieldText();
   pollTimer = setInterval(() => {
-    if (!activeField || !grammarEnabled) { stopPolling(); return; }
+    if (!siteEnabled || !activeField || !grammarEnabled) { stopPolling(); return; }
     const newText = getFieldText();
     if (newText !== lastPollText) {
       lastPollText = newText;
@@ -124,7 +125,7 @@ function stopPolling() {
 
 // ─── Selection change ───────────────────────────────────────────
 function onSelectionChange() {
-  if (!activeField) return;
+  if (!siteEnabled || !activeField) return;
   const sel = window.getSelection();
   if (sel && !sel.isCollapsed && activeField.contains(sel.anchorNode)) {
     showRewriteChip(sel);
@@ -140,7 +141,7 @@ function setupObserver() {
   if (bodyObserver) return;
   bodyObserver = new MutationObserver(() => {
     if (activeField && !document.body.contains(activeField)) deactivateField();
-    if (!activeField && document.activeElement) {
+    if (siteEnabled && !activeField && document.activeElement) {
       const editable = findEditable(document.activeElement);
       if (editable) activateField(editable);
     }
@@ -155,6 +156,36 @@ async function checkSiteEnabled() {
     siteEnabled = !data.disabledSites.includes(location.hostname);
     grammarEnabled = data.grammarEnabled !== false;
   } catch { siteEnabled = true; }
+}
+
+function onSettingsChanged(changes, area) {
+  if (area !== 'sync' || (!changes.disabledSites && !changes.grammarEnabled)) return;
+  if (changes.disabledSites) siteEnabled = !(changes.disabledSites.newValue || []).includes(location.hostname);
+  if (changes.grammarEnabled) grammarEnabled = changes.grammarEnabled.newValue !== false;
+  grammarRequestId++;
+  rewriteRequestId++;
+  clearTimeout(debounceTimer);
+  hideSpinner();
+  currentMatches = [];
+  clearHighlights();
+  hideSidebar();
+  dismissSuggestionReview();
+  hideFixCard();
+  hideRewriteChip();
+  hideSynonymCard();
+  if (!siteEnabled) {
+    deactivateField();
+    if (undoCard) undoCard.remove();
+    undoCard = null;
+    lastReviewUndo = null;
+    if (shadowRoot) shadowRoot.host.style.display = 'none';
+    return;
+  }
+  if (shadowRoot) shadowRoot.host.style.display = '';
+  if (!activeField) activateField(findEditable(document.activeElement));
+  updateBadgeCount();
+  if (grammarEnabled) { scheduleGrammarCheck(); if (activeField) startPolling(); }
+  else stopPolling();
 }
 
 // ─── Window resize handler ──────────────────────────────────────
@@ -184,7 +215,7 @@ function onKeyDown(e) {
 
 async function init() {
   await checkSiteEnabled();
-  if (!siteEnabled) return;
+  chrome.storage.onChanged.addListener(onSettingsChanged);
 
   document.addEventListener('focusin', onFieldFocus, true);
   document.addEventListener('blur', onFieldBlur, true);
@@ -199,7 +230,7 @@ async function init() {
   window.addEventListener('scroll', onScroll, { passive: true, capture: true });
   setupObserver();
 
-  if (document.activeElement) {
+  if (siteEnabled && document.activeElement) {
     const editable = findEditable(document.activeElement);
     if (editable) activateField(editable);
   }

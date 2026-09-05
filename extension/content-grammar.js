@@ -89,10 +89,13 @@ function rewriteSentence(match, mode) {
   return requestReviewRewrite(captureReviewTarget(start, end), mode);
 }
 
+let rewriteRequestId = 0;
 async function requestReviewRewrite(target, mode) {
   if (!target) return;
+  const requestId = ++rewriteRequestId;
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'rewrite', text: target.original, mode });
+    if (requestId !== rewriteRequestId || !siteEnabled) return;
     if (resp?.error || !resp?.suggestion) return showToast(resp?.error || 'The server returned no rewrite. Try again.', 'error');
     if (resp && resp.suggestion) showSuggestionReview(target, resp.suggestion, mode + ' rewrite');
   } catch { showToast('Could not reach WriteRight server.', 'error'); }
