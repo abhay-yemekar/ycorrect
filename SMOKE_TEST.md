@@ -146,6 +146,7 @@ may replace NOT RUN with PASS/FAIL and record date, browser/version and evidence
 | E01 | Stop the server, request grammar/rewrite, then simulate 429/503. An explicit error appears, no false clean result or silent replacement; restart and retry. | NOT RUN |
 | S01 | Popup: disable current site while requests are pending, then re-enable without reload. All UI disappears while disabled and pending responses cannot restore it. Toggle grammar from options: requests/highlights stop, and resume when enabled. | NOT RUN |
 | L01 | Type continuously, then pause: one grammar request for the final text. Leave unchanged through polling: no repeats. Short/empty fields leave no spinner. Rewrite shows Preparing rewrite and Cancel; cancel prevents late preview; errors clear loading and allow retry. | NOT RUN |
+| K01 | With review open and focus in its editor or card, Ctrl+Alt+Enter accepts; Escape rejects/closes; Ctrl+Alt+Z undoes. Plain Ctrl+Z remains native; IME composition and unrelated focused fields must not be intercepted. Tab to review buttons and activate them. | NOT RUN |
 
 Fill this in; commit it back to PROGRESS.md when complete.
 

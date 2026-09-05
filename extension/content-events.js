@@ -212,11 +212,31 @@ function onScroll() {
 // ─── Init ───────────────────────────────────────────────────────
 // --- Keyboard shortcuts ---
 function onKeyDown(e) {
+  if (e.isComposing || !siteEnabled) return;
+  const owner = pendingReview?.field || lastReviewUndo?.field;
+  const focused = document.activeElement;
+  const reviewFocused = owner && (focused === owner || owner.contains?.(focused) || focused === shadowRoot?.host);
+  if (reviewFocused && e.ctrlKey && e.altKey && !e.shiftKey) {
+    if (e.key === 'Enter' && pendingReview) {
+      e.preventDefault();
+      acceptSuggestionReview();
+      return;
+    }
+    if (e.key.toLowerCase() === 'z' && lastReviewUndo) {
+      e.preventDefault();
+      undoSuggestionReview();
+      return;
+    }
+  }
   if (e.key === "Escape") {
+    if (pendingReview || rewriteLoadingEl) e.preventDefault();
+    dismissSuggestionReview();
+    cancelPendingRewrite();
     hideToolbar();
     hideFixCard();
     hideRewriteChip();
     hideSynonymCard();
+    hideSidebar();
   }
 }
 

@@ -222,7 +222,7 @@ function showSuggestionReview(target, replacement, label, edits = null) {
     <div class="wr-rewrite-actions">
       <button class="wr-fix-btn primary" data-action="accept">Accept</button>
       <button class="wr-fix-btn" data-action="reject">Reject</button>
-    </div><div class="wr-review-help">Review before applying. Undo is available after acceptance.</div>`;
+    </div><div class="wr-review-help">Ctrl+Alt+Enter: accept · Escape: reject · Ctrl+Alt+Z: undo after acceptance.</div>`;
   reviewCard.style.cssText = 'display:block;top:60px;right:16px;max-height:calc(100vh - 90px);overflow:auto;max-width:min(380px,calc(100vw - 32px))';
   reviewCard.addEventListener('click', e => {
     if (e.target.dataset.action === 'accept') acceptSuggestionReview();
