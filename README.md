@@ -1,6 +1,6 @@
-# yCorrect
+# WriteRight
 
-A personal, open-source Grammarly-style writing assistant. yCorrect checks grammar with LanguageTool and provides AI rewriting tools through the Gemini Developer API.
+A personal, open-source Grammarly-style writing assistant. WriteRight checks grammar with LanguageTool and provides AI rewriting tools through the Gemini Developer API.
 
 ## Features
 
@@ -20,14 +20,14 @@ A personal, open-source Grammarly-style writing assistant. yCorrect checks gramm
 - **Keyboard Shortcuts** — Full keyboard navigation support
 - **Accessibility** — ARIA live regions, focus management, skip links
 - **Security** — Rate limiting (per-limiter budgets), strict CSP with no inline styles, CORS config, input validation, proxy-aware client IP handling
-- **Chrome Extension** — Right-click "Improve with yCorrect" on any webpage → popup comparing original vs. suggestion with Copy; configurable server URL
+- **Chrome Extension** — Right-click "Improve with WriteRight" on any webpage → popup comparing original vs. suggestion with Copy; configurable server URL
 
 ## Quick Start
 
 **Requirements:** Node.js 18+
 
 ```bash
-git clone git@github.com:abhay-yemekar/ycorrect.git
+git clone git@github-personal:abhay-yemekar/ycorrect.git
 cd ycorrect
 cp .env.example .env
 # Add GEMINI_API_KEY to .env for AI features
@@ -145,7 +145,7 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked** and select the `extension/` folder
-4. Right-click selected text → **Improve with yCorrect** → a popup shows the original next to the suggestion, with a Copy button
+4. Right-click selected text → **Improve with WriteRight** → a popup shows the original next to the suggestion, with a Copy button
 5. Right-click the toolbar icon → **Options** to change the server URL (default `http://localhost:3000`; `localhost`/`127.0.0.1` on any port work out of the box)
 
 ## Deployment

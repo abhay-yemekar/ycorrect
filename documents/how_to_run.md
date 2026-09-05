@@ -1,6 +1,6 @@
-# How to Run yCorrect
+# How to Run WriteRight
 
-This guide walks through running the yCorrect writing assistant on your local machine.
+This guide walks through running the WriteRight writing assistant on your local machine.
 
 ## 1. Prerequisites
 
@@ -55,14 +55,14 @@ You should see:
 
 ```
   ┌──────────────────────────────────────────┐
-  │           yCorrect server                │
+  │           WriteRight server                │
   ├──────────────────────────────────────────┤
   │  Local:  http://localhost:3000           │
   │  AI:     ✓ Configured                    │
   │  CORS:   * (open)                        │
   └──────────────────────────────────────────┘
 
-yCorrect running at http://localhost:3000
+WriteRight running at http://localhost:3000
 ```
 
 ## 5. Open the app
@@ -84,7 +84,7 @@ Open <http://localhost:3000> in your browser. You can now:
    - Edge: `edge://extensions`
 2. Enable **Developer mode**.
 3. Click **Load unpacked** and select the `extension` folder inside the project root.
-4. With the server running, right-click any selected text on a page and choose **Improve with yCorrect**. A popup window shows the original text next to the suggestion, with a **Copy suggestion** button.
+4. With the server running, right-click any selected text on a page and choose **Improve with WriteRight**. A popup window shows the original text next to the suggestion, with a **Copy suggestion** button.
 5. To point the extension at a different server, right-click the toolbar icon → **Options** and set the URL (default `http://localhost:3000`).
 
 ## 7. Stopping the server
