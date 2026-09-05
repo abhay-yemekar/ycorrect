@@ -105,7 +105,7 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 │       ├── modes.js      # Server-side paraphrase mode map + temperature bands
 │       └── paragraphs.js # Join/split paragraph batches around LanguageTool
 │
-├── extension/             # Chrome extension (Manifest V3) — options page, result popup, split content scripts
+├── apps/extension/             # Chrome extension (Manifest V3) — options page, result popup, split content scripts
 ├── scripts/               # Zero-dependency dev tooling (icon generator, store zip packaging)
 ├── STORE.md              # Chrome Web Store submission kit (listing draft)
 ├── SMOKE_TEST.md          # Manual browser smoke-test checklist (extension)
@@ -144,7 +144,7 @@ CI runs lint + tests on Node 18 and 22 (`.github/workflows/ci.yml`). Architectur
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
-3. Click **Load unpacked** and select the `extension/` folder
+3. Click **Load unpacked** and select the `apps/extension/` folder
 4. Right-click selected text → **Improve with WriteRight** → a popup shows the original next to the suggestion, with a Copy button
 5. Right-click the toolbar icon → **Options** to change the server URL (default `http://localhost:3000`; `localhost`/`127.0.0.1` on any port work out of the box)
 

@@ -12,7 +12,7 @@ import { inflateRawSync } from 'node:zlib';
 import { buildZip, collectFiles, manifestReferencedFiles, crc32 } from '../scripts/package-extension.js';
 import { fileURLToPath } from 'node:url';
 
-const EXTENSION_DIR = fileURLToPath(new URL('../extension/', import.meta.url));
+const EXTENSION_DIR = fileURLToPath(new URL('../apps/extension/', import.meta.url));
 
 /** Minimal zip reader: returns Map(name -> {method, data, crc}) by parsing EOCD + central dir. */
 function readZip(buf) {

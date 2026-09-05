@@ -12,7 +12,7 @@ function worker(fetch) {
       contextMenus: { onClicked: { addListener() {} } },
     },
   });
-  vm.runInContext(readFileSync(new URL('../extension/background.js', import.meta.url), 'utf8'), context);
+  vm.runInContext(readFileSync(new URL('../apps/extension/background.js', import.meta.url), 'utf8'), context);
   return message => new Promise(resolve => handler(message, {}, resolve));
 }
 

@@ -16,7 +16,7 @@ Every row should be answered — no blanks. "Counted, not estimated."
 1. Start the server: `npm start` (http://localhost:3000). Confirm
    `http://localhost:3000/api/health` returns 200 with a version.
 2. Load the extension unpacked in Chrome:
-   - Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `extension/`.
+   - Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `apps/extension/`.
 3. Open the extension's **Options** page (right-click the toolbar icon →
    **Options**). Confirm the default server URL is `http://localhost:3000`.
 4. Have a Gemini key in `server/.env` (`GEMINI_API_KEY`) if you want to test
@@ -151,6 +151,7 @@ may replace NOT RUN with PASS/FAIL and record date, browser/version and evidence
 | O01 | Set server URL to another localhost port. Open app from popup must use that URL, consistent with health checks. Restore original URL afterward. | NOT RUN |
 | B01 | Compare README, web title, extension popup/options, context menu and store draft: all public product names are WriteRight. Repository slug, package name and YCORRECT_* keys intentionally remain compatibility identifiers. | NOT RUN |
 | U02 | Select text in textarea/input with mouse and keyboard: Rewrite appears and preserves the exact selected whitespace/range. While a changed draft is being checked, an old grammar card must refuse acceptance. | NOT RUN |
+| M01 (§0.2 gate) | Load `apps/extension/` unpacked after the git move. Confirm popup/options open, content scripts inject and DevTools shows no load or duplicate-declaration errors. Required before moving another folder under the audit brief. | NOT RUN |
 
 Fill this in; commit it back to PROGRESS.md when complete.
 

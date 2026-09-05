@@ -99,4 +99,4 @@ Press `Ctrl+C` in the terminal where the server is running.
 | `Address already in use` | Another process is on port 3000. Change `PORT` in `.env` or stop the other process. |
 | Grammar check shows "unavailable" | The server must be running at localhost:3000, and internet access is required for the LanguageTool API. |
 | AI tools show a setup message | Add `GEMINI_API_KEY` to `.env` and restart the server. |
-| Extension can't reach the server | Make sure the server is running, then check the URL in the extension options (right-click the toolbar icon). `http://localhost` and `http://127.0.0.1` on any port are allowed by default; other hosts need matching `host_permissions` in `extension/manifest.json`. |
+| Extension can't reach the server | Make sure the server is running, then check the URL in the extension options (right-click the toolbar icon). `http://localhost` and `http://127.0.0.1` on any port are allowed by default; other hosts need matching `host_permissions` in `apps/extension/manifest.json`. |

@@ -1,5 +1,5 @@
 /**
- * Generate the extension icons (extension/icons/icon{16,48,128}.png).
+ * Generate the extension icons (apps/extension/icons/icon{16,48,128}.png).
  *
  * Zero dependencies: encodes PNGs by hand with node:zlib — an RGBA raster,
  * filter-0 scanlines, and manually assembled chunks with CRC32.
@@ -115,7 +115,7 @@ function drawIcon(size) {
 
 // ─── Emit ─────────────────────────────────────────────────────────
 
-const outDir = path.join(__dirname, '..', 'extension', 'icons');
+const outDir = path.join(__dirname, '..', 'apps', 'extension', 'icons');
 fs.mkdirSync(outDir, { recursive: true });
 for (const size of [16, 48, 128]) {
   const file = path.join(outDir, `icon${size}.png`);

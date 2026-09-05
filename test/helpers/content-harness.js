@@ -42,9 +42,9 @@ export async function contentHarness() {
     setTimeout(fn) { timers.set(++timerId, fn); return timerId; }, clearTimeout(id) { timers.delete(id); },
     setInterval() { return 1; }, clearInterval() {},
   });
-  const manifest = JSON.parse(readFileSync(new URL('../../extension/manifest.json', import.meta.url)));
+  const manifest = JSON.parse(readFileSync(new URL('../../apps/extension/manifest.json', import.meta.url)));
   for (const file of manifest.content_scripts[0].js) {
-    await new vm.Script(readFileSync(new URL('../../extension/' + file, import.meta.url), 'utf8'), { filename: file }).runInContext(context);
+    await new vm.Script(readFileSync(new URL('../../apps/extension/' + file, import.meta.url), 'utf8'), { filename: file }).runInContext(context);
   }
   vm.runInContext('siteEnabled = true', context);
   return { context, timers, listeners, Field, run: source => vm.runInContext(source, context) };

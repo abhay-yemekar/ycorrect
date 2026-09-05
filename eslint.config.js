@@ -92,13 +92,13 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: nodeGlobals },
   },
   {
-    files: ['extension/**/*.js'],
+    files: ['apps/extension/**/*.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: extensionGlobals },
   },
   {
     // Content scripts run as classic scripts in a document context.
     // (Multi-file split: manifest loads content-*.js in order into one isolated world.)
-    files: ['extension/content-*.js'],
+    files: ['apps/extension/content-*.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'script',
@@ -107,7 +107,7 @@ export default [
   },
   {
     // Extension pages run in a document context, unlike the service worker.
-    files: ['extension/options.js', 'extension/result.js', 'extension/popup.js'],
+    files: ['apps/extension/options.js', 'apps/extension/result.js', 'apps/extension/popup.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',
@@ -126,7 +126,7 @@ export default [
     // Must come after the global rules block to win the merge. The parts share
     // one isolated-world scope, so 'unused' / 'never reassigned' per-file
     // findings are false positives.
-    files: ['extension/content-*.js'],
+    files: ['apps/extension/content-*.js'],
     rules: {
       'no-unused-vars': 'off',
       'prefer-const': 'off',
