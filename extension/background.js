@@ -87,12 +87,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   if (msg.type === 'checkGrammar') {
-    checkGrammar(msg.text).then(sendResponse).catch(() => sendResponse({ matches: [] }));
+    checkGrammar(msg.text).then(sendResponse).catch(() => sendResponse({ error: 'Could not reach WriteRight server. Make sure npm start is running.' }));
     return true; // async response
   }
 
   if (msg.type === 'rewrite') {
-    rewrite(msg.text, msg.mode).then(sendResponse).catch(() => sendResponse({ suggestion: '' }));
+    rewrite(msg.text, msg.mode).then(sendResponse).catch(() => sendResponse({ error: 'Could not reach WriteRight server. Make sure npm start is running.' }));
     return true; // async response
   }
 
@@ -111,7 +111,7 @@ async function checkGrammar(text) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
   });
-  if (!res.ok) return { matches: [] };
+  if (!res.ok) return { error: `Grammar check failed (HTTP ${res.status}). Try again.` };
   const data = await res.json();
   return { matches: data.matches || [] };
 }
@@ -123,9 +123,10 @@ async function rewrite(text, mode) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, mode: mode || 'Humanize', strength: 0.5, variant: 1 }),
   });
-  if (!res.ok) return { suggestion: '' };
+  if (!res.ok) return { error: `Rewrite failed (HTTP ${res.status}). Check server configuration and try again.` };
   const data = await res.json();
-  return { suggestion: typeof data.text === 'string' ? data.text : '' };
+  if (typeof data.text !== 'string' || !data.text.trim()) return { error: 'The server returned no rewrite. Try again.' };
+  return { suggestion: data.text };
 }
 
 async function getSynonyms(word) {

@@ -227,7 +227,8 @@ function showToast(msg, type) {
   clearTimeout(toastTimer);
   const toast = document.createElement("div");
   toast.className = "wr-toast wr-toast-" + (type || "error");
-  toast.innerHTML = "<span>" + msg + "</span>" + '<button class="wr-toast-dismiss">×</button>';
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.innerHTML = "<span>" + escHtml(msg) + "</span>" + '<button class="wr-toast-dismiss">×</button>';
   shadowRoot.appendChild(toast);
   toast.querySelector(".wr-toast-dismiss").addEventListener("click", () => toast.remove());
   toastTimer = setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);

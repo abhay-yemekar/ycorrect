@@ -31,6 +31,15 @@ async function runGrammarCheck() {
     const resp = await chrome.runtime.sendMessage({ type: 'checkGrammar', text });
     if (requestId !== grammarRequestId || activeField !== field || !field.isConnected ||
         !siteEnabled || !grammarEnabled || getFieldText(field) !== text) return;
+    if (resp?.error || !Array.isArray(resp?.matches)) {
+      currentMatches = [];
+      clearHighlights();
+      updateIssueCount();
+      updateBadgeCount();
+      if (sidebarEl) hideSidebar();
+      showToast(resp?.error || 'Grammar check returned an invalid response.', 'error');
+      return;
+    }
     if (resp && resp.matches) {
       currentMatches = resp.matches;
       clearHighlights();
@@ -84,6 +93,7 @@ async function requestReviewRewrite(target, mode) {
   if (!target) return;
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'rewrite', text: target.original, mode });
+    if (resp?.error || !resp?.suggestion) return showToast(resp?.error || 'The server returned no rewrite. Try again.', 'error');
     if (resp && resp.suggestion) showSuggestionReview(target, resp.suggestion, mode + ' rewrite');
   } catch { showToast('Could not reach WriteRight server.', 'error'); }
 }
