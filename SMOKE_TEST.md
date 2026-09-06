@@ -1,8 +1,9 @@
 # Extension smoke test — real-browser pass (AUDIT.md item F / roadmap "Next-4")
 
 This is the manual checklist for the audit's highest-risk open item: verifying
-the extension end-to-end in a real browser. It cannot be automated (no browser
-is available to the agent), so it is written for a human with Chrome.
+the extension end-to-end in a real browser. Human results are required by the
+audit brief. Chrome is connected, but the browser tool blocks chrome://extensions;
+automated DOM doubles do not establish Chrome loading or host-site compatibility.
 
 **Why this exists:** PROGRESS.md has a history of shipping "underline fixed for
 ChatGPT/ProseMirror" fixes that were never confirmed in a browser. This pass
@@ -16,10 +17,10 @@ Every row should be answered — no blanks. "Counted, not estimated."
 1. Start the server: `npm start` (http://localhost:3000). Confirm
    `http://localhost:3000/api/health` returns 200 with a version.
 2. Load the extension unpacked in Chrome:
-   - Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `extension/`.
+   - Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `apps/extension/`.
 3. Open the extension's **Options** page (right-click the toolbar icon →
    **Options**). Confirm the default server URL is `http://localhost:3000`.
-4. Have a Gemini key in `server/.env` (`GEMINI_API_KEY`) if you want to test
+4. Have a Gemini key in the repository-root `.env` (`GEMINI_API_KEY`) if you want to test
    AI rewrite; grammar + synonyms work without it (LanguageTool is public).
 5. **Post-split sanity (NEW — most important check this round):** visit any
    plain page with a text field (see §1). Open DevTools console. There must be
@@ -28,6 +29,11 @@ Every row should be answered — no blanks. "Counted, not estimated."
    order into one isolated world; any error here means the split is broken.
 
 ## 1. Local test page (fastest, most reliable)
+
+On Windows, with `npm start` running, open
+`http://localhost:3000/test/fixtures/extension-smoke.html`. This committed fixture
+contains only synthetic writing and empty credential fields. The alternative
+shell recipe below is for systems with Bash and Python.
 
 Serve a page with every field type from localhost (matches the content script
 and the server's CORS):
@@ -75,8 +81,8 @@ exclusion from the Now phase — `FIELD_SELECTOR` skips `type=password`).
 | Check | Steps | Expected | Failure signal |
 |---|---|---|---|
 | Fix card | Click an underlined issue | Card with suggested replacement + Apply / Humanize | Card misplaced, clipped, or empty |
-| Apply | Click Apply | Text replaced; highlights re-render; sidebar updates | Offset mismatch (fix wrong text) → `findMatchRange` regression |
-| Fix All | Open sidebar → Fix All | All auto-fixable issues replaced at once | Count of fixed ≠ expected; wrong text replaced (descending-offset bug) |
+| Apply | Choose a replacement, then Accept in the review | Original/suggestion shown before replacement; Undo available afterward | Replacement without review; wrong text replaced |
+| Fix All | Open sidebar → Fix All → review → Accept | Non-overlapping fixes previewed together; batch undo available | Silent apply; wrong text replaced; overlapping alternative applied |
 | Escape key | Open fix card / sidebar | All popovers close | Escape does nothing |
 
 ## 5. AI rewrite (needs server-side Gemini key)
@@ -133,11 +139,38 @@ must not interfere with typing.
 
 ## 9. Verification record
 
+### Flagship regression queue (2026-09-05)
+
+These are pending human checks, not claimed outcomes. Only a human browser run
+may replace NOT RUN with PASS/FAIL and record date, browser/version and evidence.
+
+| ID | Steps / expected result | Human result |
+|---|---|---|
+| T01 | Start server and look up a word in web app; confirm live synonyms still appear. Automated tests now stub DataMuse and assert fixture contents. | NOT RUN |
+| U01 | Humanize sentence, selection rewrite, grammar chip and Fix All must show original/suggestion with Accept/Reject; rejection leaves text untouched; Accept then Undo restores only reviewed edits. Switch selections/fields or type while awaiting results: stale work must not apply. Test rich formatting, React inputs, empty replacements and overlapping fixes. | NOT RUN |
+| H01/W01 | Reload extension, inspect console, type repeated misspellings across formatted text nodes in ChatGPT/ProseMirror. Edit or switch fields while a grammar request is pending. Only matching text snapshots may render. Recreate nodes without changing text; ranges still underline the correct occurrence. | NOT RUN |
+| E01 | Stop the server, request grammar/rewrite, then simulate 429/503. An explicit error appears, no false clean result or silent replacement; restart and retry. | NOT RUN |
+| S01 | Popup: disable current site while requests are pending, then re-enable without reload. All UI disappears while disabled and pending responses cannot restore it. Toggle grammar from options: requests/highlights stop, and resume when enabled. | NOT RUN |
+| L01 | Type continuously, then pause: one grammar request for the final text. Leave unchanged through polling: no repeats. Short/empty fields leave no spinner. Rewrite shows Preparing rewrite and Cancel; cancel prevents late preview; errors clear loading and allow retry. | NOT RUN |
+| K01 | With review open and focus in its editor or card, Ctrl+Alt+Enter accepts; Escape rejects/closes; Ctrl+Alt+Z undoes. Plain Ctrl+Z remains native; IME composition and unrelated focused fields must not be intercepted. Tab to review buttons and activate them. | NOT RUN |
+| Z01 | Build ZIP, extract it and load extracted directory unpacked; manifest/assets load with no errors. Automated ZIP checks now validate stored CRCs against contents and known CRC vectors. Node 18 runtime pass remains separate from local Node 24 verification. | NOT RUN |
+| O01 | Set server URL to another localhost port. Open app from popup must use that URL, consistent with health checks. Restore original URL afterward. | NOT RUN |
+| B01 | Compare README, web title, extension popup/options, context menu and store draft: all public product names are WriteRight. Repository slug, package name and YCORRECT_* keys intentionally remain compatibility identifiers. | NOT RUN |
+| U02 | Select text in textarea/input with mouse and keyboard: Rewrite appears and preserves the exact selected whitespace/range. While a changed draft is being checked, an old grammar card must refuse acceptance. | NOT RUN |
+| M01 (§0.2 gate) | Load `apps/extension/` unpacked after the git move. Confirm popup/options open, content scripts inject and DevTools shows no load or duplicate-declaration errors. Required before moving another folder under the audit brief. | NOT RUN |
+
 Fill this in; commit it back to PROGRESS.md when complete.
 
 | Date | Site/field | Badge | Underlines | Sidebar | Fix | Rewrite | Console errors? |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| 2026-09-06 | All requested sites/fields | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT CHECKED |
+
+### Shutdown checkpoint
+
+The owner answered **Not checked yet** for M01. No human PASS or FAIL has been
+reported. All original checks in sections 0–7 and regression rows above remain
+NOT RUN. Full smoke state: **INCOMPLETE**, not passed. Automated results belong
+in PROGRESS.md and GAP_REPORT.md, not in the human-result columns.
 
 ---
 

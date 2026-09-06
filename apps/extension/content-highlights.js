@@ -10,9 +10,8 @@
  */
 
 // ─── Underline highlights (text-search approach) ────────────────
-// Instead of using offset-based char maps (which break when innerText
-// and text nodes disagree on newlines), we search for the error text
-// directly in DOM text nodes. This is more robust on ProseMirror.
+// Requests and DOM ranges use the same flat text-node representation.
+// Recreated nodes are safe when text is unchanged; changed text requires a new check.
 
 function createHighlightsContainer() {
   if (highlightsContainer && shadowRoot && shadowRoot.contains(highlightsContainer)) return;
@@ -81,11 +80,11 @@ function buildRange(textNodes, start, end) {
   let startNode = null, startOff = 0;
   let endNode = null, endOff = 0;
   for (const tn of textNodes) {
-    if (!startNode && tn.start + tn.length > start) {
+    if (!startNode && tn.start + tn.length >= start) {
       startNode = tn.node;
       startOff = start - tn.start;
     }
-    if (tn.start < end && tn.start + tn.length >= end) {
+    if (!endNode && tn.start <= end && tn.start + tn.length >= end) {
       endNode = tn.node;
       endOff = end - tn.start;
     }
@@ -101,77 +100,15 @@ function buildRange(textNodes, start, end) {
   }
 }
 
-function findMatchRange(field, match, currentText, textNodes) {
-  const txt = currentText || getFieldText();
-  const target = txt.slice(match.offset, match.offset + match.length);
-  if (!target) return null;
+function findMatchRange(field, match, checkedText, textNodes) {
+  const snapshot = textNodes ? { nodes: textNodes, fullText: textNodes.map(n => n.node.textContent).join('') } : collectTextNodes(field);
+  if (snapshot.fullText !== checkedText || match.offset < 0 || match.length <= 0 || match.offset + match.length > checkedText.length) return null;
+  return buildRange(snapshot.nodes, match.offset, match.offset + match.length);
+}
 
-  const nodes = textNodes || collectTextNodes(field).nodes;
-  const totalLen = nodes.reduce((sum, n) => sum + n.length, 0);
-  if (totalLen === 0) return null;
-
-  const matchEnd = match.offset + match.length;
-
-  // Tier 1: Exact offset match with text verification
-  if (match.offset >= 0 && matchEnd <= totalLen) {
-    const slice = txt.slice(match.offset, matchEnd);
-    if (slice === target) {
-      const range = buildRange(nodes, match.offset, matchEnd);
-      if (range) return range;
-    }
-  }
-
-  // Tier 2: Search for target text within single text nodes
-  for (let i = 0; i < nodes.length; i++) {
-    const nodeText = nodes[i].node.textContent;
-    const idx = nodeText.indexOf(target);
-    if (idx >= 0) {
-      const range = buildRange(nodes, nodes[i].start + idx, nodes[i].start + idx + target.length);
-      if (range) return range;
-    }
-  }
-
-  // Tier 3: Cross-node search (target spans two adjacent text nodes)
-  for (let i = 0; i < nodes.length - 1; i++) {
-    let combined = nodes[i].node.textContent;
-    for (let j = i + 1; j < Math.min(i + 4, nodes.length); j++) {
-      combined += nodes[j].node.textContent;
-      const idx = combined.indexOf(target);
-      if (idx >= 0) {
-        const range = buildRange(nodes, nodes[i].start + idx, nodes[i].start + idx + target.length);
-        if (range) return range;
-      }
-    }
-  }
-
-  // Tier 4: Strip invisible Unicode chars and retry with correct offset mapping
-  const INV_RE = /[\u200B-\u200F\u2028-\u202F\uFEFF\u00AD]/g;
-  const cleanTarget = target.replace(INV_RE, '');
-  if (cleanTarget && cleanTarget.length > 0) {
-    const cleanFull = txt.replace(INV_RE, '');
-    const cleanIdx = cleanFull.indexOf(cleanTarget);
-    if (cleanIdx >= 0) {
-      // Map cleanText position back to original text position
-      let origPos = 0, cleanPos = 0;
-      while (origPos < txt.length && cleanPos < cleanIdx) {
-        if (!INV_RE.test(txt[origPos])) {
-          cleanPos++;
-        }
-        INV_RE.lastIndex = 0;
-        origPos++;
-      }
-      const origStart = origPos;
-      const origEnd = origStart + target.length;
-      if (origEnd <= totalLen) {          const range = buildRange(nodes, origStart, origEnd);
-        if (range) return range;
-      }
-    }
-  }
-
-  return null;
-}function renderHighlights() {
+function renderHighlights() {
   clearHighlights();
-  if (!activeField) return;
+  if (!activeField || getFieldText() !== _lastCheckedText) return;
 
   // Textareas and inputs: use a simple overlay approach
   if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {

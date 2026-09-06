@@ -36,7 +36,12 @@ function removeScrollListeners() {
 }
 
 function activateField(field) {
-  if (!field || field === activeField) return;
+  if (!siteEnabled || !field || field === activeField) return;
+  grammarRequestId++;
+  grammarPending = null;
+  grammarCompleted = null;
+  clearHighlights();
+  hideSpinner();
   activeField = field;
   currentMatches = [];
   hideFixCard();
@@ -49,6 +54,11 @@ function activateField(field) {
 
 function deactivateField() {
   if (!activeField) return;
+  grammarRequestId++;
+  grammarPending = null;
+  grammarCompleted = null;
+  clearTimeout(debounceTimer);
+  hideSpinner();
   activeField = null;
   hideBadge();
   hideToolbar();
@@ -62,6 +72,7 @@ function deactivateField() {
 }
 
 function onFieldFocus(e) {
+  if (!siteEnabled) return;
   const field = findEditable(e.target);
   if (!field) return;
   activateField(field);
@@ -71,6 +82,7 @@ function onFieldBlur(e) {
   const related = e.relatedTarget;
   if (related && related.closest && related.closest('#writeright-shadow-host')) return;
   setTimeout(() => {
+    if (document.activeElement === shadowRoot?.host) return;
     if (activeField && !activeField.contains(document.activeElement) &&
         document.activeElement !== activeField &&
         !activeField.matches(':focus-within')) {
@@ -89,7 +101,11 @@ function onDocKeyActivity() {
 }
 
 function onDocInput() {
-  if (!activeField || !grammarEnabled) return;
+  if (!siteEnabled || !activeField || !grammarEnabled) return;
+  clearHighlights();
+  currentMatches = [];
+  grammarCompleted = null;
+  updateBadgeCount();
   scheduleGrammarCheck();
 }
 
@@ -98,7 +114,7 @@ function startPolling() {
   stopPolling();
   lastPollText = getFieldText();
   pollTimer = setInterval(() => {
-    if (!activeField || !grammarEnabled) { stopPolling(); return; }
+    if (!siteEnabled || !activeField || !grammarEnabled) { stopPolling(); return; }
     const newText = getFieldText();
     if (newText !== lastPollText) {
       lastPollText = newText;
@@ -114,9 +130,9 @@ function stopPolling() {
 
 // ─── Selection change ───────────────────────────────────────────
 function onSelectionChange() {
-  if (!activeField) return;
+  if (!siteEnabled || !activeField) return;
   const sel = window.getSelection();
-  if (sel && !sel.isCollapsed && activeField.contains(sel.anchorNode)) {
+  if (captureSelectionTarget()?.original) {
     showRewriteChip(sel);
   } else {
     hideRewriteChip();
@@ -130,7 +146,7 @@ function setupObserver() {
   if (bodyObserver) return;
   bodyObserver = new MutationObserver(() => {
     if (activeField && !document.body.contains(activeField)) deactivateField();
-    if (!activeField && document.activeElement) {
+    if (siteEnabled && !activeField && document.activeElement) {
       const editable = findEditable(document.activeElement);
       if (editable) activateField(editable);
     }
@@ -145,6 +161,38 @@ async function checkSiteEnabled() {
     siteEnabled = !data.disabledSites.includes(location.hostname);
     grammarEnabled = data.grammarEnabled !== false;
   } catch { siteEnabled = true; }
+}
+
+function onSettingsChanged(changes, area) {
+  if (area !== 'sync' || (!changes.disabledSites && !changes.grammarEnabled)) return;
+  if (changes.disabledSites) siteEnabled = !(changes.disabledSites.newValue || []).includes(location.hostname);
+  if (changes.grammarEnabled) grammarEnabled = changes.grammarEnabled.newValue !== false;
+  grammarRequestId++;
+  grammarPending = null;
+  grammarCompleted = null;
+  cancelPendingRewrite();
+  clearTimeout(debounceTimer);
+  hideSpinner();
+  currentMatches = [];
+  clearHighlights();
+  hideSidebar();
+  dismissSuggestionReview();
+  hideFixCard();
+  hideRewriteChip();
+  hideSynonymCard();
+  if (!siteEnabled) {
+    deactivateField();
+    if (undoCard) undoCard.remove();
+    undoCard = null;
+    lastReviewUndo = null;
+    if (shadowRoot) shadowRoot.host.style.display = 'none';
+    return;
+  }
+  if (shadowRoot) shadowRoot.host.style.display = '';
+  if (!activeField) activateField(findEditable(document.activeElement));
+  updateBadgeCount();
+  if (grammarEnabled) { scheduleGrammarCheck(); if (activeField) startPolling(); }
+  else stopPolling();
 }
 
 // ─── Window resize handler ──────────────────────────────────────
@@ -164,17 +212,37 @@ function onScroll() {
 // ─── Init ───────────────────────────────────────────────────────
 // --- Keyboard shortcuts ---
 function onKeyDown(e) {
+  if (e.isComposing || !siteEnabled) return;
+  const owner = pendingReview?.field || lastReviewUndo?.field;
+  const focused = document.activeElement;
+  const reviewFocused = owner && (focused === owner || owner.contains?.(focused) || focused === shadowRoot?.host);
+  if (reviewFocused && e.ctrlKey && e.altKey && !e.shiftKey) {
+    if (e.key === 'Enter' && pendingReview) {
+      e.preventDefault();
+      acceptSuggestionReview();
+      return;
+    }
+    if (e.key.toLowerCase() === 'z' && lastReviewUndo) {
+      e.preventDefault();
+      undoSuggestionReview();
+      return;
+    }
+  }
   if (e.key === "Escape") {
+    if (pendingReview || rewriteLoadingEl) e.preventDefault();
+    dismissSuggestionReview();
+    cancelPendingRewrite();
     hideToolbar();
     hideFixCard();
     hideRewriteChip();
     hideSynonymCard();
+    hideSidebar();
   }
 }
 
 async function init() {
   await checkSiteEnabled();
-  if (!siteEnabled) return;
+  chrome.storage.onChanged.addListener(onSettingsChanged);
 
   document.addEventListener('focusin', onFieldFocus, true);
   document.addEventListener('blur', onFieldBlur, true);
@@ -182,6 +250,7 @@ async function init() {
   document.addEventListener('keydown', onDocKeyActivity, true);
   document.addEventListener('keyup', onDocKeyActivity, true);
   document.addEventListener('selectionchange', onSelectionChange);
+  document.addEventListener('select', onSelectionChange, true);
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onKeyDown, true);
   // Double-click synonyms disabled — was showing unwanted popup in top-left corner
@@ -189,7 +258,7 @@ async function init() {
   window.addEventListener('scroll', onScroll, { passive: true, capture: true });
   setupObserver();
 
-  if (document.activeElement) {
+  if (siteEnabled && document.activeElement) {
     const editable = findEditable(document.activeElement);
     if (editable) activateField(editable);
   }
@@ -217,7 +286,8 @@ function showToast(msg, type) {
   clearTimeout(toastTimer);
   const toast = document.createElement("div");
   toast.className = "wr-toast wr-toast-" + (type || "error");
-  toast.innerHTML = "<span>" + msg + "</span>" + '<button class="wr-toast-dismiss">×</button>';
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.innerHTML = "<span>" + escHtml(msg) + "</span>" + '<button class="wr-toast-dismiss">×</button>';
   shadowRoot.appendChild(toast);
   toast.querySelector(".wr-toast-dismiss").addEventListener("click", () => toast.remove());
   toastTimer = setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
@@ -300,14 +370,7 @@ function renderSidebar() {
   const fixAllBtn = sidebarEl.querySelector('#wr-sb-fixall');
   if (fixAllBtn) {
     fixAllBtn.addEventListener('click', () => {
-      const eligible = visible.filter(m => m.replacements && m.replacements.length > 0);
-      if (eligible.length === 0) return;
-      // Sort descending by offset so replacements don't shift earlier positions
-      eligible.sort((a, b) => b.offset - a.offset);
-      for (const m of eligible) {
-        replaceMatch(m, m.replacements[0].value);
-      }
-      showToast('Fixed ' + eligible.length + ' issue' + (eligible.length > 1 ? 's' : ''), 'success');
+      reviewAllMatches(visible);
     });
   }
 
@@ -317,7 +380,7 @@ function renderSidebar() {
       e.stopPropagation();
       const idx = parseInt(chip.dataset.idx, 10);
       const replacement = chip.dataset.replace;
-      if (replacement && visible[idx]) {
+      if (replacement !== undefined && visible[idx]) {
         replaceMatch(visible[idx], replacement);
         renderSidebar();
       }

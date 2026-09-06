@@ -1,3 +1,51 @@
+# WriteRight progress
+
+## 2026-09-06 — Flagship audit shutdown checkpoint
+
+Current evidence is in [docs/GAP_REPORT.md](docs/GAP_REPORT.md). Historical entries
+below are retained as historical claims; their checkmarks are not current browser
+verification. Where they disagree with the gap report, use the new evidence.
+
+Verified locally on Node 24.14.0:
+
+- npm run check: lint clean; node:test reported 154 passing entries, zero failures.
+  There are 21 *.test.js files; one additional discovered helper module is counted
+  by the runner. The tests use DOM doubles and mocked API responses, not Chrome.
+- Suggestion review waits for acceptance, keeps its original field/range, supports
+  rejection and guarded undo. Tests cover stale text, batch overlap/deletion,
+  captured textarea selections and sentence rewrite without silent application.
+- ProseMirror-related range path executes without throwing in the DOM harness;
+  repeated/split/recreated nodes and stale responses are covered. This establishes
+  code behavior only, not pixel accuracy or compatibility on ChatGPT.
+- Tests verify explicit server errors, live settings invalidation, request
+  deduplication, rewrite cancellation and scoped keyboard shortcuts.
+- Synonym tests now intercept external fetch; the previous hermetic-test claim
+  was false. ZIP CRC tests validate stored headers and standard vectors.
+- npm workspaces initialized. Extension moved by git mv to apps/extension with
+  manifest and asset paths intact. npm run build produced the 20-file ZIP.
+- Root server.js is a compatibility shim, not a competing server. Root web assets
+  are the live editor. Both are retained pending their staged moves.
+- Public name WriteRight confirmed by owner and aligned in current documentation.
+  Root .env was never displayed or committed; normal server tests use its existing
+  loader. No Git configuration changed; no push or remote publication performed.
+
+Human verification and migration status:
+
+- Owner explicitly answered **Not checked yet** to SMOKE_TEST.md M01. Full smoke
+  is **INCOMPLETE**. Browser tool blocked chrome://extensions, so no human result
+  is fabricated. Every requested host-site check remains NOT RUN.
+- Remaining folder moves are paused at the brief's per-move human load gate.
+- STORE privacy disclosure correction is drafted in GAP_REPORT; approval remains
+  pending. The current draft must not be published unchanged.
+- .freebuff retained as initial development-tool metadata, per owner context;
+  removal was not confirmed. No losing duplicate was deleted.
+- No process or automation needs to continue running. Safe to shut down and resume
+  from this checkpoint; review the gap report's commit table before proceeding.
+
+---
+
+## Historical journal (not re-certified by this audit)
+
 ## Session 2026-09-04 — Audit remediation: Later-phase (settings, packaging, content-script split)
 
 **Goal:** Build the remaining buildable roadmap items from AUDIT.md — a fuller

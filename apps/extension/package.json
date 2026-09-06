@@ -1,0 +1,8 @@
+{
+  "name": "@writeright/extension",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "build": "node ../../scripts/package-extension.js"
+  }
+}

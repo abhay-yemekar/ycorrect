@@ -1,5 +1,5 @@
 /**
- * package-extension.js — build a Chrome Web Store upload zip from extension/.
+ * package-extension.js — build a Chrome Web Store upload zip from apps/extension/.
  *
  * Zero-dependency by design: writes a real ZIP with node:zlib only
  * (deflateRawSync + crc32), so the repo's no-runtime-deps story holds
@@ -12,9 +12,19 @@
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative, sep, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deflateRawSync, crc32 } from 'node:zlib';
+import { deflateRawSync } from 'node:zlib';
 
-const EXTENSION_DIR = fileURLToPath(new URL('../extension/', import.meta.url));
+// ZIP CRC-32 (IEEE), portable to the declared Node 18 baseline.
+export function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const EXTENSION_DIR = fileURLToPath(new URL('../apps/extension/', import.meta.url));
 
 /** All files referenced by the manifest — packaging must never ship a broken zip. */
 export function manifestReferencedFiles(m) {

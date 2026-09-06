@@ -64,9 +64,10 @@ document.getElementById('toggle-grammar').addEventListener('click', async () => 
   await chrome.storage.sync.set({ grammarEnabled: next });
 });
 
-document.getElementById('open-app').addEventListener('click', (e) => {
+document.getElementById('open-app').addEventListener('click', async (e) => {
   e.preventDefault();
-  chrome.tabs.create({ url: 'http://localhost:3000' });
+  const stored = await chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER });
+  chrome.tabs.create({ url: (stored.serverUrl || DEFAULT_SERVER).replace(/\/+$/, '') });
 });
 
 // ─── Server health ──────────────────────────────────────────────

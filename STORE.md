@@ -43,7 +43,7 @@ node scripts/package-extension.js
   4. AI rewrite mode chips on a selection
   5. Popup with site/grammar toggles and server status
 - **Small promo tile (440×280):** reuse screenshot 2.
-- **Icon:** `extension/icons/icon128.png` (must be at least 128×128).
+- **Icon:** `apps/extension/icons/icon128.png` (must be at least 128×128).
 
 ## Privacy practices (developer dashboard)
 
@@ -73,6 +73,6 @@ node scripts/package-extension.js
 
 ## Version discipline
 
-Bump `extension/manifest.json` `version` (semver) for every store update and
+Bump `apps/extension/manifest.json` `version` (semver) for every store update and
 re-run `node scripts/package-extension.js`. The zip filename embeds the version
 so old uploads never get confused with new ones.

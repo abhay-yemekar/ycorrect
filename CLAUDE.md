@@ -1,6 +1,6 @@
 # CLAUDE.md — working guide for AI assistants and humans
 
-yCorrect is a zero-dependency, self-hosted, Grammarly-style writing assistant.
+WriteRight is a zero-dependency, self-hosted, Grammarly-style writing assistant.
 Node 18+ ES modules, raw `node:http` server, vanilla-JS frontend loaded
 directly by the browser. No bundler, no framework, no build step.
 

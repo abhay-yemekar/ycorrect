@@ -81,18 +81,19 @@ chrome.contextMenus.onClicked.addListener((info) => {
 // ─── Content-script message handlers ────────────────────────────
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'openApp') {
-    chrome.tabs.create({ url: 'http://localhost:3000' });
-    sendResponse({ ok: true });
-    return false;
+    getServerUrl().then(url => chrome.tabs.create({ url }))
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ error: 'Could not open the configured server.' }));
+    return true;
   }
 
   if (msg.type === 'checkGrammar') {
-    checkGrammar(msg.text).then(sendResponse).catch(() => sendResponse({ matches: [] }));
+    checkGrammar(msg.text).then(sendResponse).catch(() => sendResponse({ error: 'Could not reach WriteRight server. Make sure npm start is running.' }));
     return true; // async response
   }
 
   if (msg.type === 'rewrite') {
-    rewrite(msg.text, msg.mode).then(sendResponse).catch(() => sendResponse({ suggestion: '' }));
+    rewrite(msg.text, msg.mode).then(sendResponse).catch(() => sendResponse({ error: 'Could not reach WriteRight server. Make sure npm start is running.' }));
     return true; // async response
   }
 
@@ -110,8 +111,9 @@ async function checkGrammar(text) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
+    signal: AbortSignal.timeout(25_000),
   });
-  if (!res.ok) return { matches: [] };
+  if (!res.ok) return { error: `Grammar check failed (HTTP ${res.status}). Try again.` };
   const data = await res.json();
   return { matches: data.matches || [] };
 }
@@ -122,10 +124,12 @@ async function rewrite(text, mode) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text, mode: mode || 'Humanize', strength: 0.5, variant: 1 }),
+    signal: AbortSignal.timeout(25_000),
   });
-  if (!res.ok) return { suggestion: '' };
+  if (!res.ok) return { error: `Rewrite failed (HTTP ${res.status}). Check server configuration and try again.` };
   const data = await res.json();
-  return { suggestion: typeof data.text === 'string' ? data.text : '' };
+  if (typeof data.text !== 'string' || !data.text.trim()) return { error: 'The server returned no rewrite. Try again.' };
+  return { suggestion: data.text };
 }
 
 async function getSynonyms(word) {
