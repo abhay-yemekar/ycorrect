@@ -1,8 +1,9 @@
 # Extension smoke test — real-browser pass (AUDIT.md item F / roadmap "Next-4")
 
 This is the manual checklist for the audit's highest-risk open item: verifying
-the extension end-to-end in a real browser. It cannot be automated (no browser
-is available to the agent), so it is written for a human with Chrome.
+the extension end-to-end in a real browser. Human results are required by the
+audit brief. Chrome is connected, but the browser tool blocks chrome://extensions;
+automated DOM doubles do not establish Chrome loading or host-site compatibility.
 
 **Why this exists:** PROGRESS.md has a history of shipping "underline fixed for
 ChatGPT/ProseMirror" fixes that were never confirmed in a browser. This pass
@@ -19,7 +20,7 @@ Every row should be answered — no blanks. "Counted, not estimated."
    - Open `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `apps/extension/`.
 3. Open the extension's **Options** page (right-click the toolbar icon →
    **Options**). Confirm the default server URL is `http://localhost:3000`.
-4. Have a Gemini key in `server/.env` (`GEMINI_API_KEY`) if you want to test
+4. Have a Gemini key in the repository-root `.env` (`GEMINI_API_KEY`) if you want to test
    AI rewrite; grammar + synonyms work without it (LanguageTool is public).
 5. **Post-split sanity (NEW — most important check this round):** visit any
    plain page with a text field (see §1). Open DevTools console. There must be
@@ -28,6 +29,11 @@ Every row should be answered — no blanks. "Counted, not estimated."
    order into one isolated world; any error here means the split is broken.
 
 ## 1. Local test page (fastest, most reliable)
+
+On Windows, with `npm start` running, open
+`http://localhost:3000/test/fixtures/extension-smoke.html`. This committed fixture
+contains only synthetic writing and empty credential fields. The alternative
+shell recipe below is for systems with Bash and Python.
 
 Serve a page with every field type from localhost (matches the content script
 and the server's CORS):
@@ -75,8 +81,8 @@ exclusion from the Now phase — `FIELD_SELECTOR` skips `type=password`).
 | Check | Steps | Expected | Failure signal |
 |---|---|---|---|
 | Fix card | Click an underlined issue | Card with suggested replacement + Apply / Humanize | Card misplaced, clipped, or empty |
-| Apply | Click Apply | Text replaced; highlights re-render; sidebar updates | Offset mismatch (fix wrong text) → `findMatchRange` regression |
-| Fix All | Open sidebar → Fix All | All auto-fixable issues replaced at once | Count of fixed ≠ expected; wrong text replaced (descending-offset bug) |
+| Apply | Choose a replacement, then Accept in the review | Original/suggestion shown before replacement; Undo available afterward | Replacement without review; wrong text replaced |
+| Fix All | Open sidebar → Fix All → review → Accept | Non-overlapping fixes previewed together; batch undo available | Silent apply; wrong text replaced; overlapping alternative applied |
 | Escape key | Open fix card / sidebar | All popovers close | Escape does nothing |
 
 ## 5. AI rewrite (needs server-side Gemini key)
@@ -157,7 +163,14 @@ Fill this in; commit it back to PROGRESS.md when complete.
 
 | Date | Site/field | Badge | Underlines | Sidebar | Fix | Rewrite | Console errors? |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| 2026-09-06 | All requested sites/fields | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT CHECKED |
+
+### Shutdown checkpoint
+
+The owner answered **Not checked yet** for M01. No human PASS or FAIL has been
+reported. All original checks in sections 0–7 and regression rows above remain
+NOT RUN. Full smoke state: **INCOMPLETE**, not passed. Automated results belong
+in PROGRESS.md and GAP_REPORT.md, not in the human-result columns.
 
 ---
 

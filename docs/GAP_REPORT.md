@@ -2,6 +2,57 @@
 
 Audit date: 2026-09-05. Baseline: `712fb44`. Branch: `audit/writeright-trust-and-structure`.
 
+## Checkpoint — 2026-09-06, ready for shutdown
+
+Automated verification passes locally on Node 24.14.0. Human smoke is INCOMPLETE;
+owner answered “Not checked yet” to the unpacked-extension gate. No release or
+named-site compatibility claim is made. The extension move is complete; server,
+web, tests and status-document folder moves are paused at that explicit gate.
+Store privacy correction remains proposed, without approval received. No push,
+PR, merge, upload, server or automation was started by this audit.
+
+| Finding | Commit evidence | Current state |
+|---|---|---|
+| T01 | 56bd857 | VERIFIED-AUTOMATED: DataMuse fixtures, external fetch intercepted |
+| U01 | 2cb1a01 | VERIFIED-AUTOMATED: preview/accept/reject/guarded undo; human editor behavior pending |
+| H01 | 494e29d | VERIFIED-AUTOMATED DOM-double execution: exact ranges, recreated nodes, stale responses; NEEDS-BROWSER-CHECK |
+| W01 | existing split tests plus runtime harness | No duplicate declarations observed; no speculative isolation change; real Chrome console still unchecked |
+| E01 | 2155274 | VERIFIED-AUTOMATED HTTP/network failure propagation |
+| S01 | 9a56c05 | VERIFIED-AUTOMATED live disable and invalidation; human toggles pending |
+| L01 | 8458b76 | VERIFIED-AUTOMATED deduplication, short-text spinner cleanup, cancellable rewrite loading |
+| K01 | 91e2867 | VERIFIED-AUTOMATED scoped shortcuts and native/IME preservation |
+| Z01 | 26c6ead | VERIFIED-AUTOMATED ZIP CRC vectors and actual header checks on local Node; Node 18 execution UNVERIFIED |
+| O01 | f7bf90e | VERIFIED-IN-CODE configured Open app URL; human check pending |
+| B01 | 9998b82 | Public WriteRight name aligned; stable technical identifiers retained by owner choice |
+| U02 | c330020 | VERIFIED-AUTOMATED textarea selection offsets; checked snapshot only advances on successful response |
+| Workspace setup | 768a533 | npm apps/* and packages/* workspace globs and lockfile |
+| Extension move / M01 | 90833ac | git mv with 100% rename similarity; imports/lint/packager paths updated; build passed; human gate NOT RUN |
+| README positioning | b1fc5ee | Actual data flow, current paths and verification limits documented |
+| P01 | proposed wording below | OPEN: approval required; store draft still contains false privacy claims |
+
+Latest runner report before this checkpoint: 154 passing entries, 0 failures,
+21 *.test.js files. Node also discovers test/helpers/content-harness.js as one
+passing file entry, so this is not a claim of 154 individual test assertions.
+Built-in rules: 14 literal rule IDs in the rules array; data rules: 76 parsed JSON
+entries. ZIP: 20 files, including the new private workspace package metadata.
+The manifest's permissions, version and ordered content-script paths did not change.
+
+The portable CRC fix is supported by the [official Node API history](https://nodejs.org/api/zlib.html#zlibcrc32data-value): native zlib.crc32 was added in Node 20.15/22.2, beyond the declared Node 18 baseline. No full Node 18 or remote CI run was performed.
+
+Remaining work after the human gate: git mv server/ to apps/server (retain root
+shim and root .env lookup), move the live web assets to apps/web and narrow static
+root, extract existing prompts with git mv, move tests to tests/unit and prepare
+tests/e2e, consolidate status docs into docs, and update all imports/docs per
+move. Neither live surface is dead code. .freebuff is retained: owner used it to
+start development and did not confirm removal. packages/prompts is reserved,
+and shared-types declares the contract but is not yet consumed by both apps.
+
+Rich-editor limits remain open: flat text has no synthetic paragraph separators;
+textarea mirror geometry is unverified; native rich-editor commands may refuse or
+transform edits. On an unexpected partial batch, the UI reports failure and directs
+the user to native undo rather than replacing the entire DOM. These limitations
+must be exercised in the human matrix before claiming full parity.
+
 VERIFIED-IN-CODE means source inspection, not a browser pass. VERIFIED-AUTOMATED means a named check actually ran. NEEDS-BROWSER-CHECK and UNVERIFIED are open, never passes. Historical counts and commit narratives are not current evidence.
 
 ## P0 — core trust (fix order)
