@@ -4,7 +4,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fleschReadingEase } from '../js/stats.js';
+import { fleschReadingEase } from '../../js/stats.js';
 
 describe('fleschReadingEase', () => {
   test('empty text returns the em-dash placeholder', () => {

@@ -80,7 +80,7 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: browserGlobals },
   },
   {
-    files: ['server/**/*.js', 'test/**/*.js', 'eslint.config.js'],
+    files: ['server/**/*.js', 'tests/unit/**/*.js', 'eslint.config.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: nodeGlobals },
   },
   {

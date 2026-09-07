@@ -6,7 +6,7 @@
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from '../server/app.js';
+import { createServer } from '../../server/app.js';
 
 describe('synonyms route', () => {
   let server;

@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRateLimiter } from '../server/middleware/rateLimit.js';
+import { createRateLimiter } from '../../server/middleware/rateLimit.js';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

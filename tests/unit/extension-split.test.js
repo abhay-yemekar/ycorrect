@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const EXTENSION_DIR = fileURLToPath(new URL('../apps/extension/', import.meta.url));
+const EXTENSION_DIR = fileURLToPath(new URL('../../apps/extension/', import.meta.url));
 
 const CANONICAL_ORDER = [
   'content-core.js',

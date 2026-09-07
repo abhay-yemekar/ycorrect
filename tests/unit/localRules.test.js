@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkLocal } from '../server/services/localRules.js';
+import { checkLocal } from '../../server/services/localRules.js';
 
 /** Find the first match produced by a rule with the given message. */
 function find(text, message) {

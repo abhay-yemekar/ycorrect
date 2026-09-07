@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderOverlayHtml } from '../js/editor.js';
+import { renderOverlayHtml } from '../../js/editor.js';
 
 const issue = (offset, length, rule = {}) => ({ offset, length, rule });
 

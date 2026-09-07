@@ -58,7 +58,7 @@ Current staged migration:
 | index.html, styles.css, js/ | Live web editor served by the API server; not a discarded prototype |
 | packages/shared-types/ | Type declarations for existing API responses; not runtime validation |
 | packages/prompts/ | Reserved workspace; live prompts still reside in server/services |
-| test/ | Unit, integration, ZIP and isolated-content-context regressions |
+| tests/unit/ | Unit, integration, ZIP and isolated-content-context regressions |
 | scripts/ | Icon generation and ZIP packaging |
 | docs/GAP_REPORT.md | Evidence, priorities, fixes and remaining gates |
 

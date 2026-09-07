@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeMatches } from '../server/routes/grammar.js';
+import { mergeMatches } from '../../server/routes/grammar.js';
 
 const match = (offset, length, message) => ({ offset, length, message, replacements: [], rule: {} });
 

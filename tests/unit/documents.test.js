@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeImportedDoc, mergeDocsForImport } from '../js/documents.js';
+import { normalizeImportedDoc, mergeDocsForImport } from '../../js/documents.js';
 
 let seq = 0;
 const idFactory = () => `test-id-${++seq}`;

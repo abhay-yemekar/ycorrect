@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { createServer } from '../server/app.js';
+import { createServer } from '../../server/app.js';
 
 let server;
 let port;
@@ -65,7 +65,7 @@ describe('API routes', () => {
   });
 
   test('GET /api/health reports the package version, not a hardcoded one', async () => {
-    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
     const res = await fetch(`${base}/api/health`);
     const data = await res.json();
     assert.equal(data.version, pkg.version);
@@ -206,7 +206,7 @@ describe('security', () => {
   });
 
   test('CSP hash matches the theme bootstrap script exactly (defect 7)', async () => {
-    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
     const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const m = html.match(/<script>([\s\S]*?)<\/script>/);
     assert.ok(m, 'index.html has an inline bootstrap script');
