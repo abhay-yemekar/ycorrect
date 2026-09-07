@@ -1,5 +1,61 @@
 # WriteRight progress
 
+## 2026-09-07 — Structure completion and store correction (audit Phases 4–6)
+
+Continues the 2026-09-06 checkpoint below. Each phase was committed separately
+and verified with `npm run check` (lint clean + full suite) and `npm run build`
+(extension zip) before the next move, per the brief's one-move-per-commit rule.
+All moves used `git mv` (history preserved; similarity 87–100%).
+
+Verified locally on Node 24.14.0:
+
+- `94b1568` docs(structure): AUDIT/PROGRESS/STORE/SMOKE_TEST moved into docs/;
+  README and CLAUDE links updated to the new paths.
+- `2173fbb` chore(cleanup): .freebuff removed (owner-approved; grep confirmed no
+  code, script or config referenced it — only doc mentions).
+- `96adb4d` refactor(structure): tests moved to tests/unit. Imports and
+  URL-based paths gain one level; `npm test` uses an explicit glob
+  (`node --test "tests/unit/**/*.test.js"` — a bare directory argument fails on
+  this Node/Windows combination); the eslint node-globals block follows; the
+  CSP hash test's repo-root resolution was corrected for the deeper location.
+- `0b5ae2d` refactor(structure): server moved to apps/server. Root `server.js`
+  stays as the compatibility shim and now imports `./apps/server/app.js`;
+  `npm start`/`npm dev` point at the new entry; `projectRoot` resolves two
+  levels up so .env loading and static serving still reach the repo root; the
+  health route's package.json lookup gained the matching level; test imports
+  and current docs rewritten.
+- `d7d9ba0` refactor(structure): web assets moved to apps/web. The static root
+  is now `apps/web` while `projectRoot` stays the repo root for .env, so the
+  static surface no longer exposes repository files outside apps/web. Live
+  probe on an ephemeral port: GET / → 200 with page title, /styles.css → 200,
+  /js/app.js → 200, /.env → 404 (dotfile block intact).
+- `82e0c37` docs(prompts): prompt extraction stays deferred — modes.js mixes
+  the validated mode surface (MODE_KEYS, temperatureFor) with prompt strings,
+  so moving it churns the server import graph for no behavioral gain while the
+  browser gate is open. Paths refreshed.
+- `98c64c2` fix(store): P01 privacy correction APPLIED with owner approval
+  (2026-09-07). STORE.md now states that grammar checks send text to the
+  public LanguageTool API, AI features to Google Gemini with the server-side
+  key, and synonym lookups to DataMuse; the "never leaves your machine" and
+  "privacy-first" claims are gone. No manifest, permission, version or
+  identity change; submission remains a separate owner step.
+
+Current counts (runner output, not estimates): 153 passing test entries,
+0 failures, 25 suites, 21 *.test.js files plus one discovered helper module.
+Rule counts unchanged: 14 built-in + 76 data rules.
+
+Still open (human-only or owner-only):
+
+- Unpacked-extension smoke M01 remains **NOT RUN** — the owner answered
+  "Not checked yet" on 2026-09-06 and no browser result is fabricated. Note:
+  the static root narrowed in `d7d9ba0`, so the fixture is no longer served at
+  a URL; docs/SMOKE_TEST.md §1 now gives copy-in-place and separate-port
+  recipes for reaching it.
+- Chrome Web Store submission (registration, screenshots, review) — owner step.
+- Remote CI on Node 18/22 — configuration exists, remote run UNVERIFIED.
+
+---
+
 ## 2026-09-06 — Flagship audit shutdown checkpoint
 
 Current evidence is in [GAP_REPORT.md](GAP_REPORT.md). Historical entries

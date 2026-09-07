@@ -28,24 +28,29 @@ PR, merge, upload, server or automation was started by this audit.
 | Workspace setup | 768a533 | npm apps/* and packages/* workspace globs and lockfile |
 | Extension move / M01 | 90833ac | git mv with 100% rename similarity; imports/lint/packager paths updated; build passed; human gate NOT RUN |
 | README positioning | b1fc5ee | Actual data flow, current paths and verification limits documented |
-| P01 | proposed wording below | APPLIED 2026-09-07: owner approved the correction; STORE.md privacy claims now name LanguageTool, Gemini and DataMuse (commit recorded in the checkpoint table) |
+| P01 | proposed wording below | APPLIED 2026-09-07: owner approved the correction; STORE.md privacy claims now name LanguageTool, Gemini and DataMuse — commit `98c64c2` |
+| Docs consolidation | 94b1568 | git mv of AUDIT/PROGRESS/STORE/SMOKE_TEST into docs/; README/CLAUDE links updated |
+| .freebuff removal | 2173fbb | Owner-approved; grep confirmed no code/config reference |
+| Tests move | 96adb4d | git mv to tests/unit; imports, npm test glob, eslint block and CSP-hash path corrected; 153/153 pass |
+| Server move | 0b5ae2d | git mv to apps/server; root shim re-pointed; projectRoot two levels up; health route package.json lookup fixed; docs updated |
+| Web move | d7d9ba0 | git mv to apps/web; static root narrowed to apps/web with live probe (GET / 200, /.env 404); SMOKE_TEST fixture recipes updated |
+| Prompts disposition | 82e0c37 | Extraction stays deferred with rationale; stale paths refreshed |
 
-Latest runner report before this checkpoint: 154 passing entries, 0 failures,
-21 *.test.js files. Node also discovers test/helpers/content-harness.js as one
-passing file entry, so this is not a claim of 154 individual test assertions.
+Latest runner report (2026-09-07, post-structure): 153 passing entries, 0 failures,
+25 suites, 21 *.test.js files. Node also discovers tests/unit/helpers/content-harness.js
+as one passing file entry, so this is not a claim of 153 individual test assertions.
 Built-in rules: 14 literal rule IDs in the rules array; data rules: 76 parsed JSON
-entries. ZIP: 20 files, including the new private workspace package metadata.
-The manifest's permissions, version and ordered content-script paths did not change.
+entries. ZIP build passes. The manifest's permissions, version and ordered
+content-script paths did not change.
 
 The portable CRC fix is supported by the [official Node API history](https://nodejs.org/api/zlib.html#zlibcrc32data-value): native zlib.crc32 was added in Node 20.15/22.2, beyond the declared Node 18 baseline. No full Node 18 or remote CI run was performed.
 
-Remaining work after the human gate: git mv server/ to apps/server (retain root
-shim and root .env lookup), move the live web assets to apps/web and narrow static
-root, extract existing prompts with git mv, move tests to tests/unit and prepare
-tests/e2e, consolidate status docs into docs, and update all imports/docs per
-move. Neither live surface is dead code. .freebuff is retained: owner used it to
-start development and did not confirm removal. packages/prompts is reserved,
-and shared-types declares the contract but is not yet consumed by both apps.
+Remaining work after the human gate: none of the planned moves remain — server,
+web, tests and status docs are all moved (see checkpoint table). `tests/e2e/` is
+created empty and awaits real browser-driven tests, which are human-gated.
+packages/prompts stays reserved with extraction deferred (rationale in its
+README), and shared-types declares the contract but is not yet consumed by both
+apps. .freebuff was removed on 2026-09-07 with owner approval.
 
 Rich-editor limits remain open: flat text has no synthetic paragraph separators;
 textarea mirror geometry is unverified; native rich-editor commands may refuse or
@@ -64,7 +69,7 @@ VERIFIED-IN-CODE means source inspection, not a browser pass. VERIFIED-AUTOMATED
 | H01 | ProseMirror stale-text guard is implemented (PROGRESS 2026-09-02) | `_lastCheckedText` is assigned but never read. `findMatchRange` compares a slice with itself, then falls back to the first occurrence. `runGrammarCheck` can attach results from field A to field B. | Claimed-but-broken; preserve checked field/text, discard stale results, map exact offsets across current nodes. NEEDS-BROWSER-CHECK for actual geometry/host editor behavior. |
 | E01 | Offline server produces toast, not successful empty check | `background.js` swallows HTTP/network failures into empty matches/suggestion. `content-grammar.js` sees success; AI catches silently. | Broken; propagate failure and show it. |
 | S01 | Disabling a site/grammar takes effect | `content-events.js` reads sync storage only at init; no onChanged listener. Disabled sites cannot reactivate without reload. | Broken; live settings must invalidate requests and remove UI. |
-| P01 | Store draft: text never leaves machine / never a third-party cloud | `server/services/languagetool.js` hardcodes public LanguageTool; Gemini service calls Google; synonyms route calls DataMuse. Hosting the Node proxy locally does not make these local. | False; store correction requires owner approval under brief's submission rule. Proposed wording below. |
+| P01 | Store draft: text never leaves machine / never a third-party cloud | `server/services/languagetool.js` hardcodes public LanguageTool; Gemini service calls Google; synonyms route calls DataMuse. Hosting the Node proxy locally does not make these local. | RESOLVED 2026-09-07: correction applied to STORE.md with owner approval (`98c64c2`). |
 
 ## P1 — affordable parity and reliability
 
