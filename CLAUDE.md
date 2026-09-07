@@ -68,7 +68,7 @@ directly by the browser. No bundler, no framework, no build step.
 | `js/editor.js` | Textarea + overlay + `setText`/offset arithmetic |
 | `js/grammar.js` | Check runner, issues panel, popover, ignore lists |
 | `test/` | `node:test` unit + integration suites |
-| `PROGRESS.md` | Session journal + defect ledger — **update it every session** |
+| `docs/PROGRESS.md` | Session journal + defect ledger — **update it every session** |
 
 ## Testing notes
 

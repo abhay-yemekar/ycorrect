@@ -2,7 +2,7 @@
 
 ## 2026-09-06 — Flagship audit shutdown checkpoint
 
-Current evidence is in [docs/GAP_REPORT.md](docs/GAP_REPORT.md). Historical entries
+Current evidence is in [GAP_REPORT.md](GAP_REPORT.md). Historical entries
 below are retained as historical claims; their checkmarks are not current browser
 verification. Where they disagree with the gap report, use the new evidence.
 

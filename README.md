@@ -2,7 +2,7 @@
 
 WriteRight is a self-hosted writing assistant for people who want a free grammar core and optional AI rewrites through their own server and API key.
 
-Run a local web editor or use the Chrome extension to review suggestions in a page. The extension shows original and suggested text before acceptance, with rejection and guarded undo. These paths have automated regression coverage; the named-site browser matrix is still pending in [SMOKE_TEST.md](SMOKE_TEST.md).
+Run a local web editor or use the Chrome extension to review suggestions in a page. The extension shows original and suggested text before acceptance, with rejection and guarded undo. These paths have automated regression coverage; the named-site browser matrix is still pending in [SMOKE_TEST.md](docs/SMOKE_TEST.md).
 
 **Where your writing goes:** self-hosting refers to the Node server. Grammar checks currently send text to the public LanguageTool API; optional AI features send text to Google Gemini; synonym lookups send the selected word to DataMuse. The repository has no analytics. This is not a fully offline product.
 
@@ -31,7 +31,7 @@ Open http://localhost:3000. The root .env stays private and must never be commit
 
 Ctrl+Alt+Enter accepts the current review; Escape rejects/closes; Ctrl+Alt+Z undoes the last reviewed edit. Shortcuts apply in the review's editor or card and leave plain Ctrl+Z to the host. The context-menu path opens a separate original/suggestion window with Copy; it does not insert into the page.
 
-Textarea, text input and contenteditable paths exist in code. ChatGPT, Gemini, Notion, Gmail and Google Docs support must be established by the human [browser checklist](SMOKE_TEST.md), not inferred from generic field detection. Rich-editor mutations depend on the host honoring its input transaction; if it refuses or transforms a batch, inspect the field and use native undo as directed by the error message.
+Textarea, text input and contenteditable paths exist in code. ChatGPT, Gemini, Notion, Gmail and Google Docs support must be established by the human [browser checklist](docs/SMOKE_TEST.md), not inferred from generic field detection. Rich-editor mutations depend on the host honoring its input transaction; if it refuses or transforms a batch, inspect the field and use native undo as directed by the error message.
 
 ## Web editor
 
@@ -62,7 +62,7 @@ Current staged migration:
 | scripts/ | Icon generation and ZIP packaging |
 | docs/GAP_REPORT.md | Evidence, priorities, fixes and remaining gates |
 
-The server, web, tests and status-document moves remain pending the extension-load gate. [CLAUDE.md](CLAUDE.md) describes implementation constraints. [PROGRESS.md](PROGRESS.md) records this audit separately from unverified historical narratives. [STORE.md](STORE.md) is a submission draft with a privacy correction awaiting owner approval; it is not ready to copy into a listing unchanged.
+The server, web, tests and status-document moves remain pending the extension-load gate. [CLAUDE.md](CLAUDE.md) describes implementation constraints. [PROGRESS.md](docs/PROGRESS.md) records this audit separately from unverified historical narratives. [STORE.md](docs/STORE.md) is a submission draft with a privacy correction awaiting owner approval; it is not ready to copy into a listing unchanged.
 
 The product name is WriteRight. The GitHub repository/package identity ycorrect, YCORRECT_* environment variables and existing storage keys are retained for compatibility.
 
