@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PARA_MODES, MODE_KEYS, temperatureFor } from '../../server/services/modes.js';
+import { PARA_MODES, MODE_KEYS, temperatureFor } from '../../apps/server/services/modes.js';
 
 describe('PARA_MODES', () => {
   test('exposes exactly the nine documented modes', () => {

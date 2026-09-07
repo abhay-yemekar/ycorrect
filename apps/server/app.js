@@ -16,7 +16,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 // Only fills variables that are not already present in the environment.
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-export const projectRoot = path.resolve(root, '..');
+// Server now lives at <repoRoot>/apps/server; the project root is two levels up.
+export const projectRoot = path.resolve(root, '..', '..');
 
 try {
   const fs = await import('node:fs/promises');

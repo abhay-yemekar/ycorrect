@@ -31,7 +31,7 @@ Every row should be answered — no blanks. "Counted, not estimated."
 ## 1. Local test page (fastest, most reliable)
 
 On Windows, with `npm start` running, open
-`http://localhost:3000/test/fixtures/extension-smoke.html`. This committed fixture
+`http://localhost:3000/tests/unit/fixtures/extension-smoke.html`. This committed fixture
 contains only synthetic writing and empty credential fields. The alternative
 shell recipe below is for systems with Bash and Python.
 

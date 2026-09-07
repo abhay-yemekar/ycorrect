@@ -6,8 +6,8 @@
   "type": "module",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "start": "node server/app.js",
-    "dev": "node server/app.js",
+    "start": "node apps/server/app.js",
+    "dev": "node apps/server/app.js",
     "test": "node --test \"tests/unit/**/*.test.js\"",
     "lint": "eslint .",
     "check": "npm run lint && npm test",

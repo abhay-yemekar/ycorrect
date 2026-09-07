@@ -53,11 +53,11 @@ Current staged migration:
 | Path | Actual role |
 |---|---|
 | apps/extension/ | Live MV3 source; popup, options, worker, seven ordered content scripts |
-| server/app.js | Live API entry used by npm start |
+| apps/server/app.js | Live API entry used by npm start |
 | server.js | Compatibility shim for node server.js; not a duplicate server |
 | index.html, styles.css, js/ | Live web editor served by the API server; not a discarded prototype |
 | packages/shared-types/ | Type declarations for existing API responses; not runtime validation |
-| packages/prompts/ | Reserved workspace; live prompts still reside in server/services |
+| packages/prompts/ | Reserved workspace; live prompts still reside in apps/server/services |
 | tests/unit/ | Unit, integration, ZIP and isolated-content-context regressions |
 | scripts/ | Icon generation and ZIP packaging |
 | docs/GAP_REPORT.md | Evidence, priorities, fixes and remaining gates |

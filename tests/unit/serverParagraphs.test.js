@@ -6,8 +6,8 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { joinParagraphs, splitMatches } from '../../server/services/paragraphs.js';
-import { checkLocal } from '../../server/services/localRules.js';
+import { joinParagraphs, splitMatches } from '../../apps/server/services/paragraphs.js';
+import { checkLocal } from '../../apps/server/services/localRules.js';
 
 describe('joinParagraphs', () => {
   test('computes starts with \\n\\n separators', () => {

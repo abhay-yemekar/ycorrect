@@ -44,12 +44,12 @@ directly by the browser. No bundler, no framework, no build step.
   `js/grammar.js`. Nothing else may write that element.
 - Local grammar rules carry **stable ids**; per-document ignore lists are
   persisted with the document. Never key ignores on message text alone.
-- Server: middleware chain in `server/app.js`; route handlers return data
-  objects or `{ status, error }`; only `server/services/*` touch external
+- Server: middleware chain in `apps/server/app.js`; route handlers return data
+  objects or `{ status, error }`; only `apps/server/services/*` touch external
   APIs. `createServer()`/`startServer()` are exported so tests boot the real
   stack on an ephemeral port.
 - The Gemini key travels in the `x-goog-api-key` **header**, never in a URL.
-- Paraphrase modes live **server-side** (`server/services/modes.js`); clients
+- Paraphrase modes live **server-side** (`apps/server/services/modes.js`); clients
   send the mode *key*, never prompt text.
 - Static serving never exposes dotfiles (`.env`, `.git/…`) or `node_modules`;
   malformed URLs get 400, traversal gets 403. Tests enforce all of this.
@@ -60,10 +60,10 @@ directly by the browser. No bundler, no framework, no build step.
 
 | Path | Role |
 |---|---|
-| `server/app.js` | Wiring + entry: middleware order, route table, static serving |
-| `server/middleware/` | cors, rateLimit, security (headers/CSP), logger, validate |
-| `server/routes/` | One file per endpoint; thin validation + delegation |
-| `server/services/` | gemini, languagetool, localRules (pure), modes |
+| `apps/server/app.js` | Wiring + entry: middleware order, route table, static serving |
+| `apps/server/middleware/` | cors, rateLimit, security (headers/CSP), logger, validate |
+| `apps/server/routes/` | One file per endpoint; thin validation + delegation |
+| `apps/server/services/` | gemini, languagetool, localRules (pure), modes |
 | `js/` | Frontend ES modules; `app.js` is the entry that wires the rest |
 | `js/editor.js` | Textarea + overlay + `setText`/offset arithmetic |
 | `js/grammar.js` | Check runner, issues panel, popover, ignore lists |

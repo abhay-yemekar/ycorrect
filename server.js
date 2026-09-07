@@ -5,6 +5,6 @@
  * services. This file starts it for anyone still running `node server.js`.
  * Prefer `npm start`.
  */
-import { startServer } from './server/app.js';
+import { startServer } from './apps/server/app.js';
 
 startServer();

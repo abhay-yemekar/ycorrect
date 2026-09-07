@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import * as gemini from '../services/gemini.js';
 
 const { version } = JSON.parse(
-  readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
+  readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')
 );
 
 export default function healthRoute() {

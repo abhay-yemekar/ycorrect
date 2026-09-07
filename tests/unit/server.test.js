@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { createServer } from '../../server/app.js';
+import { createServer } from '../../apps/server/app.js';
 
 let server;
 let port;

@@ -8,7 +8,7 @@
 
 import { describe, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { generate } from '../../server/services/gemini.js';
+import { generate } from '../../apps/server/services/gemini.js';
 
 const KEY = 'test-key-never-real';
 
