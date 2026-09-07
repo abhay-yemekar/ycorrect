@@ -17,10 +17,10 @@ node scripts/package-extension.js
 - **Name:** WriteRight — Writing Assistant
 - **Category:** Productivity
 - **Short description (up to 132 chars):**
-  In-page grammar check and AI rewriting on any website. Works with your local
-  WriteRight server — your text never leaves your machine.
+  Grammar checking and optional AI rewriting through your self-hosted
+  WriteRight server. Review suggestions before applying.
 - **Detailed description:**
-  WriteRight is a privacy-first writing assistant. Click into any text field on
+  WriteRight is a self-hosted writing assistant. Click into any text field on
   any website and a badge appears; click it to run a grammar check (via your
   local LanguageTool-powered server) or select text to rewrite it with AI modes
   like Formal, Simple, Creative, and Humanize.
@@ -34,8 +34,7 @@ node scripts/package-extension.js
 
   Requirements: WriteRight requires the free, self-hosted WriteRight server
   (https://github.com/abhay-yemekar/ycorrect) running locally on
-  http://localhost:3000. Your text is sent only to that server — never to a
-  third-party cloud.
+  http://localhost:3000.
 - **Screenshots (need 1–5, 1280×800 or 640×400):**
   1. Options page (server URL + per-site controls)
   2. Badge + underline highlights on a page's textarea
@@ -48,8 +47,12 @@ node scripts/package-extension.js
 ## Privacy practices (developer dashboard)
 
 - **Single purpose:** check and improve the user's writing in web pages.
-- **Data usage:** none collected. The extension sends text only to the
-  user-configured localhost server, never to the extension developer.
+- **Data usage:** The extension sends writing to your configured local server.
+  Grammar checks send text to the public LanguageTool API. Optional AI features
+  send text to Google Gemini using your server-side key. Synonym lookups send
+  the selected word to DataMuse. The extension has no analytics and does not
+  send writing to the extension developer. Self-hosting the server does not
+  make these providers local. Review each provider's data practices before use.
 - **Permissions rationale** (must match the manifest exactly):
   - `storage` — saves server URL, per-site disable list, grammar toggle, and
     last check results.
@@ -57,8 +60,9 @@ node scripts/package-extension.js
   - `host_permissions: http://localhost/*, http://127.0.0.1/*` — talking to
     the user's own local WriteRight server.
   - `content_scripts: http://*/*, https://*/*` — the assistant must run inside
-    the text fields of whatever sites the user visits. No site data is sent
-    anywhere except the local server, and WriteRight stays inactive on sites
+    the text fields of whatever sites the user visits. Field text is sent only
+    to the user-configured local server (which forwards to the external
+    providers named under Data usage), and WriteRight stays inactive on sites
     the user disables.
 
 ## Manual submission steps (cannot be automated)

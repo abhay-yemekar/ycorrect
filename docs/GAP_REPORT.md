@@ -8,7 +8,7 @@ Automated verification passes locally on Node 24.14.0. Human smoke is INCOMPLETE
 owner answered “Not checked yet” to the unpacked-extension gate. No release or
 named-site compatibility claim is made. The extension move is complete; server,
 web, tests and status-document folder moves are paused at that explicit gate.
-Store privacy correction remains proposed, without approval received. No push,
+Store privacy correction APPLIED 2026-09-07 with owner approval. No push,
 PR, merge, upload, server or automation was started by this audit.
 
 | Finding | Commit evidence | Current state |
@@ -28,7 +28,7 @@ PR, merge, upload, server or automation was started by this audit.
 | Workspace setup | 768a533 | npm apps/* and packages/* workspace globs and lockfile |
 | Extension move / M01 | 90833ac | git mv with 100% rename similarity; imports/lint/packager paths updated; build passed; human gate NOT RUN |
 | README positioning | b1fc5ee | Actual data flow, current paths and verification limits documented |
-| P01 | proposed wording below | OPEN: approval required; store draft still contains false privacy claims |
+| P01 | proposed wording below | APPLIED 2026-09-07: owner approved the correction; STORE.md privacy claims now name LanguageTool, Gemini and DataMuse (commit recorded in the checkpoint table) |
 
 Latest runner report before this checkpoint: 154 passing entries, 0 failures,
 21 *.test.js files. Node also discovers test/helpers/content-harness.js as one
@@ -117,7 +117,7 @@ VERIFIED-IN-CODE means source inspection, not a browser pass. VERIFIED-AUTOMATED
 | Credentials skipped | content-core.js:isSkipField checks explicit password and exact autocomplete values | VERIFIED-IN-CODE limited cases; sensitive-site browser pass pending |
 | Context menu shows original and suggestion with Copy | background.js:improveSelection/openResult; result.js | VERIFIED-IN-CODE; does not insert into host page |
 | ZIP contains every referenced file, byte faithful | scripts/package-extension.js; packaging tests | VERIFIED-AUTOMATED local Node; Node 18 issue Z01 |
-| Store submission ready | STORE has draft text, but no screenshots or submission evidence and false privacy statement | UNVERIFIED / blocked by P01 and human smoke |
+| Store submission ready | STORE has draft text with the corrected privacy disclosure; no screenshots or submission evidence | UNVERIFIED / blocked by human smoke; P01 no longer blocks |
 | Every historical session's test count, pushed commits, byte-exact split, fixed checkmarks | Historical journal and audit are claims, not current runtime evidence | UNVERIFIED historically unless independently evidenced above; retained as history |
 
 ## Branding inventory (baseline exact matches)
@@ -135,7 +135,7 @@ VERIFIED-IN-CODE means source inspection, not a browser pass. VERIFIED-AUTOMATED
 | CLAUDE.md introductory sentence | yCorrect public name; update to WriteRight |
 | Domain/deployment config | No domain/hosting configuration in tracked tree; localhost defaults in manifest, popup, options, worker. GitHub slug is ycorrect. No rename required. |
 
-## Proposed store correction (P01; approval required before editing STORE)
+## Proposed store correction (P01; APPLIED 2026-09-07 with owner approval)
 
 Short description: “Grammar checking and optional AI rewriting through your self-hosted WriteRight server. Review suggestions before applying.”
 
