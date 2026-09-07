@@ -35,13 +35,13 @@ directly by the browser. No bundler, no framework, no build step.
 
 - **Editor = textarea + mirrored overlay.** Issues are `{offset, length}`
   into `editor.value`. Every *programmatic* text change must go through
-  `setText()` in `js/editor.js` — it shifts stored issue offsets, re-renders
+  `setText()` in `apps/web/js/editor.js` — it shifts stored issue offsets, re-renders
   the overlay, and re-triggers the stats/save/check pipeline. Never assign
   `editor.value` directly; assigning `.value` fires no `input` event.
-- `renderOverlayHtml(text, issues)` (js/editor.js) is **pure** and
+- `renderOverlayHtml(text, issues)` (apps/web/js/editor.js) is **pure** and
   unit-tested in Node. Keep it DOM-free.
 - `#issueCount` has exactly one writer: `renderIssuesPanel()` in
-  `js/grammar.js`. Nothing else may write that element.
+  `apps/web/js/grammar.js`. Nothing else may write that element.
 - Local grammar rules carry **stable ids**; per-document ignore lists are
   persisted with the document. Never key ignores on message text alone.
 - Server: middleware chain in `apps/server/app.js`; route handlers return data
@@ -64,9 +64,9 @@ directly by the browser. No bundler, no framework, no build step.
 | `apps/server/middleware/` | cors, rateLimit, security (headers/CSP), logger, validate |
 | `apps/server/routes/` | One file per endpoint; thin validation + delegation |
 | `apps/server/services/` | gemini, languagetool, localRules (pure), modes |
-| `js/` | Frontend ES modules; `app.js` is the entry that wires the rest |
-| `js/editor.js` | Textarea + overlay + `setText`/offset arithmetic |
-| `js/grammar.js` | Check runner, issues panel, popover, ignore lists |
+| `apps/web/js/` | Frontend ES modules; `app.js` is the entry that wires the rest |
+| `apps/web/js/editor.js` | Textarea + overlay + `setText`/offset arithmetic |
+| `apps/web/js/grammar.js` | Check runner, issues panel, popover, ignore lists |
 | `test/` | `node:test` unit + integration suites |
 | `docs/PROGRESS.md` | Session journal + defect ledger — **update it every session** |
 

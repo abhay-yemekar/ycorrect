@@ -30,10 +30,22 @@ Every row should be answered — no blanks. "Counted, not estimated."
 
 ## 1. Local test page (fastest, most reliable)
 
-On Windows, with `npm start` running, open
-`http://localhost:3000/tests/unit/fixtures/extension-smoke.html`. This committed fixture
-contains only synthetic writing and empty credential fields. The alternative
-shell recipe below is for systems with Bash and Python.
+The committed fixture
+`tests/unit/fixtures/extension-smoke.html` contains only synthetic writing and
+empty credential fields. The server's static root is `apps/web/`, so it does
+not serve the tests tree; copy the fixture in for the session (and remove it
+afterwards) or serve the tests tree separately on another port:
+
+```bash
+# option A: session copy (matches the server's CORS + content-script matches)
+cp tests/unit/fixtures/extension-smoke.html apps/web/extension-smoke.html
+# open http://localhost:3000/extension-smoke.html ; delete the copy afterwards
+
+# option B: separate static server on another port (then allow that host in
+# apps/extension/manifest.json host_permissions if the extension must reach it)
+python3 -m http.server 8787 --directory tests/unit
+# open http://localhost:8787/fixtures/extension-smoke.html
+```
 
 Serve a page with every field type from localhost (matches the content script
 and the server's CORS):

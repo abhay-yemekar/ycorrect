@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { shiftIssues } from '../../js/editor.js';
+import { shiftIssues } from '../../apps/web/js/editor.js';
 
 const iss = (offset, length, label = 'x') => ({ offset, length, label });
 

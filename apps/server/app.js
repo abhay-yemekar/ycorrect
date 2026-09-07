@@ -98,7 +98,10 @@ const SYNONYMS_PATH = '/api/synonyms';
 // ─── Server factory ───────────────────────────────────────────────
 
 export function createServer() {
-  const serveStatic = createStaticServer(projectRoot);
+  // Static assets (web editor) live in apps/web; projectRoot stays the repo
+  // root for .env lookup and any other repo-level resources.
+  const webRoot = path.resolve(projectRoot, 'apps', 'web');
+  const serveStatic = createStaticServer(webRoot);
 
   return http.createServer(async (req, res) => {
     try {

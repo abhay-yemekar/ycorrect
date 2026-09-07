@@ -207,7 +207,7 @@ describe('security', () => {
 
   test('CSP hash matches the theme bootstrap script exactly (defect 7)', async () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-    const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(root, 'apps', 'web', 'index.html'), 'utf8');
     const m = html.match(/<script>([\s\S]*?)<\/script>/);
     assert.ok(m, 'index.html has an inline bootstrap script');
 

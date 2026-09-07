@@ -55,7 +55,7 @@ Current staged migration:
 | apps/extension/ | Live MV3 source; popup, options, worker, seven ordered content scripts |
 | apps/server/app.js | Live API entry used by npm start |
 | server.js | Compatibility shim for node server.js; not a duplicate server |
-| index.html, styles.css, js/ | Live web editor served by the API server; not a discarded prototype |
+| apps/web/ (index.html, styles.css, js/) | Live web editor served by the API server; not a discarded prototype |
 | packages/shared-types/ | Type declarations for existing API responses; not runtime validation |
 | packages/prompts/ | Reserved workspace; live prompts still reside in apps/server/services |
 | tests/unit/ | Unit, integration, ZIP and isolated-content-context regressions |

@@ -76,7 +76,7 @@ const extensionGlobals = {
 export default [
   js.configs.recommended,
   {
-    files: ['js/**/*.js'],
+    files: ['apps/web/js/**/*.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: browserGlobals },
   },
   {

@@ -5,7 +5,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { splitParagraphs, stitchMatches, sortMatches } from '../../js/paragraphs.js';
+import { splitParagraphs, stitchMatches, sortMatches } from '../../apps/web/js/paragraphs.js';
 
 describe('splitParagraphs', () => {
   test('splits on blank lines and reports full-text offsets', () => {
